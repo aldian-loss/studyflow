@@ -1,0 +1,2447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>EdTech World — Dunia Teknologi Pendidikan (Ultimate Edition)</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- React 18 & Babel Standalone -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    html, body, #root {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #0ea5e9;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    :focus-visible {
+      outline: 2px solid #10b981;
+      outline-offset: 2px;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.5);
+      border-radius: 9999px;
+    }
+    .skill-card {
+      transition: all 0.2s ease-in-out;
+    }
+    .skill-card:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="font-sans antialiased text-slate-900">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+    // ========================================================================
+    // KOMPONEN IKON LUCIDE
+    // ========================================================================
+    function Icon({ name, className = 'w-4 h-4', ariaHidden = true }) {
+      const spanRef = useRef(null);
+      useEffect(() => {
+        if (!spanRef.current || !window.lucide) return;
+        const iconDef = window.lucide.icons[name];
+        if (!iconDef) return;
+        const svgElement = window.lucide.createElement(iconDef);
+        svgElement.setAttribute('class', className);
+        if (ariaHidden) svgElement.setAttribute('aria-hidden', 'true');
+        spanRef.current.innerHTML = '';
+        spanRef.current.appendChild(svgElement);
+      }, [name, className, ariaHidden]);
+      return <span ref={spanRef} className="inline-flex items-center justify-center shrink-0" />;
+    }
+
+    // ========================================================================
+    // SOUND EFFECTS (WEB AUDIO API - 100% OFFLINE)
+    // ========================================================================
+    const soundManager = {
+      muted: false,
+      ctx: null,
+      getCtx() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+      },
+      playClick() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(360, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.18, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.09);
+        } catch (_) {}
+      },
+      playCoin() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          [987.77, 1318.51].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.07);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.07);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.07 + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.07);
+            osc.stop(ctx.currentTime + i * 0.07 + 0.22);
+          });
+        } catch (_) {}
+      },
+      playVictory() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+            gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.6);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.1);
+            osc.stop(ctx.currentTime + i * 0.1 + 0.65);
+          });
+        } catch (_) {}
+      },
+      playThunder() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(90, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.6);
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.75);
+        } catch (_) {}
+      },
+      playBuild() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          [261.63, 329.63, 392.00, 523.25].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
+            gain.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.08);
+            osc.stop(ctx.currentTime + i * 0.08 + 0.22);
+          });
+        } catch (_) {}
+      }
+    };
+
+    // ========================================================================
+    // DATA MASTER: KAWASAN, SKILL TREE, BOTTLES, & KUIS
+    // ========================================================================
+    const STORAGE_KEY = 'edtech_world_save_v3';
+
+    const getTodayKey = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const INITIAL_ISLANDS = [
+      {
+        id: 'isl-hub',
+        name: 'Pulau Markas Tekpend',
+        subtitle: 'Pusat Komando ADDIE',
+        course: 'Dasar Teknologi Pendidikan (AECT)',
+        biome: 'hub',
+        gridX: 0,
+        gridY: 0,
+        radius: 3.2,
+        unlocked: true,
+        prosperity: 85,
+        facilities: ['library', 'lab'],
+        summary: 'Kawasan inti Teknologi Pendidikan menurut AECT: Desain, Pengembangan, Pemanfaatan, Pengelolaan, dan Evaluasi proses serta sumber belajar.',
+        concepts: [
+          'Definisi AECT 2008: Studi dan praktik etis dalam memfasilitasi belajar dan meningkatkan kinerja melalui penciptaan, penggunaan, dan pengelolaan proses serta sumber teknologi yang sesuai.',
+          'Model ADDIE: Kerangka desain pembelajaran universal (Analysis, Design, Development, Implementation, Evaluation).',
+          'Tujuan Pokok: Memecahkan masalah belajar manusia dan mengoptimalkan efektivitas proses pembelajaran.'
+        ],
+        quizzes: [
+          {
+            q: 'Manakah urutan tahapan model desain pembelajaran ADDIE yang tepat?',
+            opts: [
+              'Analysis → Design → Development → Implementation → Evaluation',
+              'Assessment → Delivery → Design → Integration → Execution',
+              'Analysis → Development → Design → Evaluation → Implementation'
+            ],
+            ans: 0
+          },
+          {
+            q: 'Menurut definisi AECT 2008, fokus utama teknologi pendidikan adalah memfasilitasi belajar dan...',
+            opts: ['Membeli perangkat keras tercanggih', 'Meningkatkan kinerja (improving performance)', 'Menggantikan peran pengajar'],
+            ans: 1
+          }
+        ]
+      },
+      {
+        id: 'isl-design',
+        name: 'Benua Desain Pesan',
+        subtitle: 'Kawasan Visual & Multimedia',
+        course: 'Desain Pesan & Komunikasi Pembelajaran',
+        biome: 'forest',
+        gridX: -6,
+        gridY: -4,
+        radius: 4,
+        unlocked: true,
+        prosperity: 75,
+        facilities: ['library'],
+        summary: 'Penerapan prinsip tipografi, hierarki visual, Cognitive Load Theory (Sweller), dan prinsip multimedia Richard Mayer.',
+        concepts: [
+          'Cognitive Load Theory (CLT): Kapasitas memori kerja (working memory) terbatas (7 ± 2 unit informasi).',
+          'Coherence Principle: Singkirkan gambar, musik, dan kata dekoratif yang tidak relevan dengan materi belajar.',
+          'Signaling Principle: Beri petunjuk visual (sorotan, panah, cetak tebal) untuk mengarahkan fokus mata.'
+        ],
+        quizzes: [
+          {
+            q: 'Prinsip multimedia Mayer yang menyarankan penghapusan materi dekoratif yang tidak relevan disebut...',
+            opts: ['Prinsip Redundansi', 'Prinsip Koherensi (Coherence Principle)', 'Prinsip Modalitas'],
+            ans: 1
+          },
+          {
+            q: 'Pemberian isyarat visual seperti penyorotan warna pada istilah kunci mengacu pada prinsip...',
+            opts: ['Signaling Principle', 'Spatial Contiguity', 'Personalization Principle'],
+            ans: 0
+          }
+        ]
+      },
+      {
+        id: 'isl-media',
+        name: 'Pulau Gunung Media',
+        subtitle: 'Kawasan Pengembangan & AR/VR',
+        course: 'Media Pembelajaran & ASSURE',
+        biome: 'mountain',
+        gridX: 6,
+        gridY: -4,
+        radius: 4,
+        unlocked: true,
+        prosperity: 65,
+        facilities: ['lab'],
+        summary: 'Perancangan media audio, video, multimedia interaktif, dan pemilihan media sistematis menggunakan model ASSURE.',
+        concepts: [
+          'Model ASSURE: Model prosedural merancang dan memilih media pembelajaran di kelas (Smaldino dkk).',
+          'Tahapan: Analyze learners, State standards/objectives, Select media, Utilize media, Require learner participation, Evaluate/revise.'
+        ],
+        quizzes: [
+          {
+            q: 'Huruf "S" kedua dalam model pemilihan media pembelajaran ASSURE adalah...',
+            opts: ['Select Methods, Media, and Materials', 'State Standards and Objectives', 'Student Participation'],
+            ans: 0
+          }
+        ]
+      },
+      {
+        id: 'isl-snow',
+        name: 'Pulau Puncak Teori',
+        subtitle: 'Paradigma Belajar',
+        course: 'Teori Belajar & Pembelajaran',
+        biome: 'snow',
+        gridX: 0,
+        gridY: -7,
+        radius: 3.3,
+        unlocked: true,
+        prosperity: 60,
+        facilities: [],
+        summary: 'Landasan psikologis belajar mulai dari Behaviorisme (Skinner), Kognitivisme (Ausubel), Konstruktivisme (Vygotsky), hingga Konektivisme.',
+        concepts: [
+          'Behaviorisme: Belajar sebagai perubahan tingkah laku hasil stimulus-respon dan penguatan (reinforcement).',
+          'Konstruktivisme Vygotsky: Belajar melalui interaksi sosial dalam Zone of Proximal Development (ZPD) dengan scaffolding.',
+          'Konektivisme (Era Digital): Belajar adalah proses menghubungkan simpul informasi (nodes) dalam jaringan.'
+        ],
+        quizzes: [
+          {
+            q: 'Bantuan bertahap yang diberikan pendidik kepada peserta didik di dalam ZPD Vygotsky disebut...',
+            opts: ['Conditioning', 'Scaffolding', 'Assimilation'],
+            ans: 1
+          }
+        ]
+      },
+      {
+        id: 'isl-psy',
+        name: 'Benua Psikologi',
+        subtitle: 'Karakteristik Pe Belajar',
+        course: 'Psikologi Pendidikan',
+        biome: 'meadow',
+        gridX: 6,
+        gridY: 4,
+        radius: 4,
+        unlocked: true,
+        prosperity: 50,
+        facilities: [],
+        summary: 'Analisis motivasi intrinsik-ekstrinsik, perkembangan kognitif peserta didik, serta asesmen diagnostik.',
+        concepts: [
+          'Self-Determination Theory: 3 pilar motivasi intrinsik adalah Autonomy, Competence, dan Relatedness.',
+          'Pembelajaran Berdiferensiasi: Menyesuaikan konten, proses, dan produk belajar berdasarkan kesiapan siswa.'
+        ],
+        quizzes: [
+          {
+            q: 'Tiga kebutuhan psikologis dasar penumbuh motivasi intrinsik menurut Deci & Ryan adalah...',
+            opts: ['Otonomi, Kompetensi, dan Keterhubungan (Relatedness)', 'Hadiah, Hukuman, dan Peringkat', 'Hafalan, Latihan, dan Ujian'],
+            ans: 0
+          }
+        ]
+      },
+      {
+        id: 'isl-digital',
+        name: 'Pulau Literasi Siber',
+        subtitle: 'Etika & Keamanan Digital',
+        course: 'Literasi Digital & Etika AI',
+        biome: 'forest',
+        gridX: -6,
+        gridY: 4,
+        radius: 3.5,
+        unlocked: true,
+        prosperity: 70,
+        facilities: ['lighthouse'],
+        summary: 'Penguasaan empat pilar literasi digital (Skills, Culture, Ethics, Safety) serta etika pemanfaatan AI generatif.',
+        concepts: [
+          'Empat Pilar Kominfo: Digital Skills, Digital Culture, Digital Ethics, dan Digital Safety.',
+          'Etika AI Generatif: Transparansi sitasi, perlindungan data pribadi, dan verifikasi akurasi informasi.'
+        ],
+        quizzes: [
+          {
+            q: 'Tindakan memverifikasi kredibilitas penulis dan tahun terbit sumber digital termasuk pilar...',
+            opts: ['Digital Safety', 'Digital Ethics & Critical Information', 'Hardware Maintenance'],
+            ans: 1
+          }
+        ]
+      },
+      {
+        id: 'isl-desert',
+        name: 'Benua Evaluasi ?',
+        subtitle: 'Terkunci (Kabut Misteri)',
+        course: 'Evaluasi Program & Kurikulum',
+        biome: 'desert',
+        gridX: -2,
+        gridY: 7,
+        radius: 3,
+        unlocked: false,
+        prosperity: 15,
+        facilities: [],
+        summary: 'Kawasan evaluasi formatif, sumatif, serta model evaluasi pelatihan 4 Level Kirkpatrick (Reaction, Learning, Behavior, Results).',
+        concepts: [
+          'Level 1 Reaction: Kepuasan peserta terhadap jalannya pembelajaran.',
+          'Level 2 Learning: Pengukuran pemahaman konsep dan keterampilan.',
+          'Level 3 Behavior: Perubahan perilaku nyata di lingkungan belajar/kerja.',
+          'Level 4 Results: Dampak nyata terhadap performa capaian institusi.'
+        ],
+        quizzes: [
+          {
+            q: 'Level ke-4 dalam model evaluasi pelatihan Donald Kirkpatrick mengukur...',
+            opts: ['Kepuasan peserta (Reaction)', 'Dampak nyata pada organisasi/hasil akhir (Results)', 'Kehadiran harian'],
+            ans: 1
+          }
+        ]
+      },
+      {
+        id: 'isl-pancasila',
+        name: 'Benua Kebangsaan ?',
+        subtitle: 'Terkunci (Kabut Misteri)',
+        course: 'Pancasila & Ilmu Pendidikan',
+        biome: 'desert',
+        gridX: 3,
+        gridY: 7,
+        radius: 3,
+        unlocked: false,
+        prosperity: 20,
+        facilities: [],
+        summary: 'Filosofi Tripusat Pendidikan Ki Hadjar Dewantara serta pemerataan akses teknologi pendidikan bagi daerah 3T.',
+        concepts: [
+          'Tripusat Pendidikan: Tri Sentra Pendidikan meliputi Keluarga, Sekolah (Perguruan), dan Masyarakat.',
+          'Ing Ngarsa Sung Tuladha (di depan memberi teladan), Ing Madya Mangun Karsa (di tengah membangun semangat), Tut Wuri Handayani (di belakang memberi dorongan).'
+        ],
+        quizzes: [
+          {
+            q: 'Semboyan Ki Hadjar Dewantara "Ing Ngarsa Sung Tuladha" bermakna...',
+            opts: ['Di depan memberi teladan', 'Di tengah membangun semangat', 'Di belakang memberi dorongan'],
+            ans: 0
+          }
+        ]
+      }
+    ];
+
+    // Data Pohon Keterampilan (Skill Tree)
+    const INITIAL_SKILL_TREE = [
+      { id: 'sk-1', branch: 'Desain Instruksional', title: 'Fondasi AECT 2008', xpReq: 0, unlocked: true, desc: 'Memahami definisi, kawasan, dan kode etik teknologi pendidikan.' },
+      { id: 'sk-2', branch: 'Desain Instruksional', title: 'Arsitek ADDIE', xpReq: 80, unlocked: false, desc: 'Merancang siklus ADDIE utuh dari analisis audiens hingga evaluasi sumatif.' },
+      { id: 'sk-3', branch: 'Desain Instruksional', title: 'Master Desain Dick & Carey', xpReq: 160, unlocked: false, desc: 'Menyusun hirarki peta kompetensi instruksional sistematis tingkat lanjut.' },
+
+      { id: 'sk-4', branch: 'Media Pembelajaran', title: 'Prinsip Hierarki Visual', xpReq: 0, unlocked: true, desc: 'Menerapkan kontras, tipografi, dan komposisi ruang putih media.' },
+      { id: 'sk-5', branch: 'Media Pembelajaran', title: 'Pakar Multimedia Mayer', xpReq: 100, unlocked: false, desc: 'Mengurangi beban kognitif ekstraneus dengan Coherence & Signaling.' },
+      { id: 'sk-6', branch: 'Media Pembelajaran', title: 'Pengembang Imersif AR/VR', xpReq: 220, unlocked: false, desc: 'Membangun simulasi laboratorium virtual 3D untuk konsep sains abstrak.' },
+
+      { id: 'sk-7', branch: 'Evaluasi & Teori', title: 'Pemetaan Teori Belajar', xpReq: 50, unlocked: false, desc: 'Membedakan pendekatan Behavioristik, Kognitivistik, dan Konstruktivistik.' },
+      { id: 'sk-8', branch: 'Evaluasi & Teori', title: 'Evaluator Kirkpatrick Level 4', xpReq: 180, unlocked: false, desc: 'Mengukur dampak perilaku nyata (behavior) dan hasil akhir (results).' }
+    ];
+
+    // Botol Hanyut di Lautan
+    const INITIAL_BOTTLES = [
+      {
+        id: 'bot-1',
+        gridX: -2.5,
+        gridY: -1.5,
+        author: 'Ki Hadjar Dewantara',
+        quote: 'Maksud pendidikan itu ialah menuntun segala kekuatan kodrat yang ada pada anak-anak, agar mereka dapat mencapai keselamatan dan kebahagiaan yang setinggi-tingginya.',
+        question: 'Siapakah pendiri Perguruan Taman Siswa di Yogyakarta pada tahun 1922?',
+        options: ['Ki Hadjar Dewantara (R.M. Soewardi Soerjaningrat)', 'Dr. Wahidin Soedirohoesodo', 'K.H. Ahmad Dahlan'],
+        ans: 0,
+        rewardXp: 30,
+        claimed: false
+      },
+      {
+        id: 'bot-2',
+        gridX: 2.8,
+        gridY: 1.2,
+        author: 'John Dewey (Learning by Doing)',
+        quote: 'Education is not preparation for life; education is life itself. We learn by doing and reflecting upon what we do.',
+        question: 'Aliran filsafat pendidikan yang menekankan pembelajaran melalui pengalaman praktis (learning by doing) adalah...',
+        options: ['Pragmatisme / Progresivisme', 'Perenialisme', 'Esensialisme'],
+        ans: 0,
+        rewardXp: 30,
+        claimed: false
+      },
+      {
+        id: 'bot-3',
+        gridX: 1.5,
+        gridY: -4.5,
+        author: 'Robert M. Gagné',
+        quote: 'Learning is a change in human disposition or capability that persists over a period of time and is not simply ascribable to processes of growth.',
+        question: 'Langkah pertama dalam 9 Peristiwa Pembelajaran (Nine Events of Instruction) Robert Gagné adalah...',
+        options: ['Gain Attention (Menarik Perhatian Siswa)', 'Present Content', 'Assess Performance'],
+        ans: 0,
+        rewardXp: 30,
+        claimed: false
+      }
+    ];
+
+    // Bank Soal Boss Battle
+    const BOSS_QUESTIONS = [
+      { q: 'Urutan 5 fase model instruksional ADDIE adalah?', opts: ['Analysis, Design, Development, Implementation, Evaluation', 'Action, Direction, Delivery, Integration, Exam', 'Assessment, Diagnosis, Design, Induction, Evaluation'], ans: 0 },
+      { q: 'Prinsip Mayer yang melarang menyajikan teks tercetak yang identik dengan narasi audio secara bersamaan disebut?', opts: ['Redundancy Principle', 'Signaling Principle', 'Segmenting Principle'], ans: 0 },
+      { q: 'Bantuan belajar bertahap yang diberikan pendidik di dalam ZPD peserta didik disebut?', opts: ['Scaffolding', 'Conditioning', 'Equilibration'], ans: 0 },
+      { q: 'Pilar Literasi Digital yang fokus pada etika, norma, dan kesantunan berinteraksi di ruang siber adalah?', opts: ['Digital Ethics', 'Digital Safety', 'Digital Skills'], ans: 0 },
+      { q: 'Tingkat tertinggi (Level 4) pada model evaluasi pelatihan Donald Kirkpatrick adalah mengukur?', opts: ['Results (Dampak Nyata pada Organisasi)', 'Reaction (Kepuasan Peserta)', 'Learning (Hasil Tes Kuis)'], ans: 0 }
+    ];
+
+    // Tanya-Jawab Prof. Voxel
+    const PROF_VOXEL_KNOWLEDGE = [
+      {
+        topic: 'ADDIE vs ASSURE',
+        question: 'Apa perbedaan mendasar model ADDIE dan model ASSURE?',
+        answer: 'Model ADDIE bersifat kerangka payung makro untuk merancang program atau kurikulum dari nol (Analysis hingga Evaluation). Sedangkan model ASSURE lebih berorientasi mikro pada guru/dosen di dalam kelas untuk memilih dan memanfaatkan media secara spesifik dengan melibatkan partisipasi aktif siswa (Require Learner Participation).'
+      },
+      {
+        topic: 'Prinsip Mayer',
+        question: 'Bagaimana cara mencegah beban kognitif berlebih menurut Richard Mayer?',
+        answer: 'Terapkan 3 strategi utama: 1) Kurangi extraneous processing dengan membuang musik/gambar dekoratif (Coherence) dan sorot kata kunci (Signaling). 2) Kelola essential processing dengan memecah materi menjadi bab pendek (Segmenting). 3) Maksimalkan saluran ganda mata dan telinga (Modality).'
+      },
+      {
+        topic: 'Vygotsky & AI',
+        question: 'Bagaimana konsep ZPD Vygotsky diterapkan pada kecerdasan buatan (AI) edukasi?',
+        answer: 'AI edukatif berfungsi sebagai "Scaffolding" dinamis. Ketika siswa kesulitan, AI memberikan petunjuk langkah demi langkah (hints), bukan langsung memberikan kunci jawaban akhir. Setelah siswa paham, bantuan AI dikurangi secara bertahap agar kemandirian belajar terbentuk.'
+      }
+    ];
+
+    const INITIAL_QUESTS = [
+      { id: 'q-1', title: 'Analisis Kawasan AECT & Penerapan ADDIE', islandId: 'isl-hub', stage: 'Analysis & Design', xpReward: 60, citizensReward: 120, estimatedMinutes: 50, completedMinutes: 25, done: false },
+      { id: 'q-2', title: 'Redesign Infografis dengan Prinsip Mayer', islandId: 'isl-design', stage: 'Development', xpReward: 50, citizensReward: 95, estimatedMinutes: 45, completedMinutes: 0, done: false },
+      { id: 'q-3', title: 'Penyusunan GBPM & Storyboard ASSURE', islandId: 'isl-media', stage: 'Development', xpReward: 70, citizensReward: 140, estimatedMinutes: 60, completedMinutes: 25, done: false },
+      { id: 'q-4', title: 'Matriks Perbandingan Teori Belajar', islandId: 'isl-snow', stage: 'Analysis', xpReward: 45, citizensReward: 80, estimatedMinutes: 30, completedMinutes: 0, done: false },
+      { id: 'q-5', title: 'Audit Keamanan Akun & Cek Fakta Hoaks', islandId: 'isl-digital', stage: 'Implementation', xpReward: 40, citizensReward: 75, estimatedMinutes: 25, completedMinutes: 25, done: true },
+      { id: 'q-6', title: 'Rancang Instrumen 4 Level Kirkpatrick', islandId: 'isl-desert', stage: 'Evaluation', xpReward: 80, citizensReward: 160, estimatedMinutes: 45, completedMinutes: 0, done: false }
+    ];
+
+    const INITIAL_POLL = {
+      id: 'poll-addie-1',
+      question: 'Prioritas pengembangan media pembelajaran minggu ini?',
+      options: [
+        { id: 'opt-1', label: 'Modul Interaktif & Kuis Adaptif', votes: 168 },
+        { id: 'opt-2', label: 'Video Microlearning 5 Menit', votes: 112 },
+        { id: 'opt-3', label: 'Simulasi Lab Virtual AR/VR', votes: 140 }
+      ]
+    };
+
+    const INITIAL_ALUN_ALUN = [
+      { id: 'msg-1', author: 'Rina_Tekpend24', badge: 'Arsitek ADDIE', island: 'Benua Desain Pesan', text: 'Baru saja membuka Perpustakaan Digital di Benua Desain Pesan! Sekarang kapalku berlayar otomatis antar pulau.', time: '5 menit lalu', likes: 16 },
+      { id: 'msg-2', author: 'Dimas_EdTech', badge: 'Penakluk Kognitif', island: 'Pulau Gunung Media', text: 'Tantangan Monster Beban Kognitif seru banget! Berhasil jawab 5 soal tanpa salah dalam 60 detik.', time: '18 menit lalu', likes: 28, devReply: 'Hebat, Dimas! Gelar Penakluk Beban Kognitif sudah tersemat di paspormu.' }
+    ];
+
+    // ========================================================================
+    // ENGINE KANVAS VOXEL ISOMETRIK LENGKAP
+    // ========================================================================
+    function IsometricWorldCanvas({
+      islands,
+      selectedIslandId,
+      onSelectIsland,
+      camera,
+      setCamera,
+      pulseIslandId,
+      timeMode, // 'day' | 'sunset' | 'night' | 'storm' | 'aurora'
+      burstTrigger,
+      boatPos,
+      setBoatPos,
+      bottles,
+      onSelectBottle
+    }) {
+      const canvasRef = useRef(null);
+      const isDraggingRef = useRef(false);
+      const dragStartRef = useRef({ x: 0, y: 0 });
+      const movedDistanceRef = useRef(0);
+      const hitboxesRef = useRef([]);
+      const bottleHitboxesRef = useRef([]);
+
+      // Multi-touch Pinch Zoom
+      const touchDistRef = useRef(null);
+
+      // Partikel Efek
+      const snowflakesRef = useRef(
+        Array.from({ length: 40 }, () => ({
+          x: (Math.random() - 0.5) * 160,
+          y: -140 - Math.random() * 80,
+          speed: 0.6 + Math.random() * 0.8,
+          radius: 1.2 + Math.random() * 1.5
+        }))
+      );
+
+      const firefliesRef = useRef(
+        Array.from({ length: 30 }, () => ({
+          gx: -6 + (Math.random() - 0.5) * 6,
+          gy: -4 + (Math.random() - 0.5) * 6,
+          offsetY: -30 - Math.random() * 30,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.03 + Math.random() * 0.03
+        }))
+      );
+
+      const rainDropsRef = useRef(
+        Array.from({ length: 90 }, () => ({
+          x: Math.random() * 1200,
+          y: Math.random() * 800,
+          len: 12 + Math.random() * 10,
+          speed: 9 + Math.random() * 6
+        }))
+      );
+
+      const burstParticlesRef = useRef([]);
+
+      useEffect(() => {
+        if (!burstTrigger) return;
+        const newParticles = Array.from({ length: 36 }, () => ({
+          x: burstTrigger.x || 0,
+          y: burstTrigger.y || 0,
+          vx: (Math.random() - 0.5) * 7,
+          vy: -3 - Math.random() * 6,
+          alpha: 1,
+          color: ['#facc15', '#10b981', '#38bdf8', '#ec4899', '#ffffff'][Math.floor(Math.random() * 5)],
+          size: 3 + Math.random() * 4
+        }));
+        burstParticlesRef.current.push(...newParticles);
+      }, [burstTrigger]);
+
+      // Gambar Balok Kubus Voxel
+      const drawVoxelBlock = useCallback((ctx, sx, sy, tileW, tileH, height, topColor, leftColor, rightColor, isGlowing = false) => {
+        const hw = tileW / 2;
+        const hh = tileH / 2;
+
+        if (isGlowing) {
+          ctx.shadowColor = '#facc15';
+          ctx.shadowBlur = 12;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - height);
+        ctx.lineTo(sx + hw, sy + hh - height);
+        ctx.lineTo(sx, sy + tileH - height);
+        ctx.lineTo(sx - hw, sy + hh - height);
+        ctx.closePath();
+        ctx.fillStyle = topColor;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(sx - hw, sy + hh - height);
+        ctx.lineTo(sx, sy + tileH - height);
+        ctx.lineTo(sx, sy + tileH);
+        ctx.lineTo(sx - hw, sy + hh);
+        ctx.closePath();
+        ctx.fillStyle = leftColor;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(sx + hw, sy + hh - height);
+        ctx.lineTo(sx, sy + tileH - height);
+        ctx.lineTo(sx, sy + tileH);
+        ctx.lineTo(sx + hw, sy + hh);
+        ctx.closePath();
+        ctx.fillStyle = rightColor;
+        ctx.fill();
+
+        if (isGlowing) ctx.shadowBlur = 0;
+      }, []);
+
+      // Render Loop
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+
+        const tileW = 46;
+        const tileH = 23;
+
+        const isoToScreen = (gx, gy) => ({
+          x: (gx - gy) * (tileW / 2),
+          y: (gx + gy) * (tileH / 2)
+        });
+
+        const render = () => {
+          const dpr = window.devicePixelRatio || 1;
+          const rect = canvas.getBoundingClientRect();
+          if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+          }
+
+          ctx.save();
+          ctx.scale(dpr, dpr);
+
+          const time = Date.now() * 0.0025;
+
+          // 1. GRADASI LAUTAN SESUAI CUACA
+          const cx = rect.width / 2;
+          const cy = rect.height / 2;
+          const maxDim = Math.max(rect.width, rect.height) * 0.85;
+          const seaGrad = ctx.createRadialGradient(cx, cy, 40, cx, cy, maxDim);
+
+          if (timeMode === 'night' || timeMode === 'aurora') {
+            seaGrad.addColorStop(0, '#1e293b');
+            seaGrad.addColorStop(0.55, '#0f172a');
+            seaGrad.addColorStop(1, '#020617');
+          } else if (timeMode === 'sunset') {
+            seaGrad.addColorStop(0, '#fb923c');
+            seaGrad.addColorStop(0.45, '#c026d3');
+            seaGrad.addColorStop(1, '#4c1d95');
+          } else if (timeMode === 'storm') {
+            seaGrad.addColorStop(0, '#334155');
+            seaGrad.addColorStop(0.55, '#1e293b');
+            seaGrad.addColorStop(1, '#0f172a');
+          } else {
+            // Day
+            seaGrad.addColorStop(0, '#38bdf8');
+            seaGrad.addColorStop(0.55, '#0ea5e9');
+            seaGrad.addColorStop(1, '#0284c7');
+          }
+
+          ctx.fillStyle = seaGrad;
+          ctx.fillRect(0, 0, rect.width, rect.height);
+
+          // Kilatan Petir acak saat badai
+          if (timeMode === 'storm' && Math.random() < 0.015) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.fillRect(0, 0, rect.width, rect.height);
+            soundManager.playThunder();
+          }
+
+          // Efek Tirai Cahaya Aurora Borealis
+          if (timeMode === 'aurora') {
+            ctx.save();
+            for (let a = 0; a < 3; a++) {
+              ctx.beginPath();
+              ctx.moveTo(0, rect.height * 0.2);
+              for (let ax = 0; ax <= rect.width; ax += 50) {
+                const waveY = rect.height * 0.15 + Math.sin(time * 1.5 + ax * 0.008 + a) * 45;
+                ctx.lineTo(ax, waveY);
+              }
+              ctx.lineTo(rect.width, 0);
+              ctx.lineTo(0, 0);
+              ctx.closePath();
+              ctx.fillStyle = a === 0 ? 'rgba(52, 211, 153, 0.18)' : a === 1 ? 'rgba(192, 132, 252, 0.15)' : 'rgba(56, 189, 248, 0.12)';
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+
+          // Bintang Malam
+          if (timeMode === 'night' || timeMode === 'aurora') {
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 45; i++) {
+              const sx = (i * 137.5) % rect.width;
+              const sy = (i * 93.3) % (rect.height * 0.7);
+              const twinkle = (Math.sin(time * 2 + i) + 1) * 0.45 + 0.1;
+              ctx.globalAlpha = twinkle;
+              ctx.beginPath();
+              ctx.arc(sx, sy, i % 3 === 0 ? 1.8 : 1.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+          }
+
+          // Kamera
+          const camCenterX = rect.width / 2 + camera.x;
+          const camCenterY = rect.height / 2 + camera.y;
+          ctx.translate(camCenterX, camCenterY);
+          ctx.scale(camera.zoom, camera.zoom);
+
+          // 2. KISI OMBAK & BUSA
+          ctx.strokeStyle = timeMode === 'storm' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 1;
+          const waveAmp = timeMode === 'storm' ? 4.5 : 2.5;
+
+          for (let gx = -14; gx <= 14; gx += 2) {
+            for (let gy = -14; gy <= 14; gy += 2) {
+              const p = isoToScreen(gx, gy);
+              const wave = Math.sin(time + gx * 0.4 + gy * 0.4) * waveAmp;
+              ctx.beginPath();
+              ctx.moveTo(p.x - 9, p.y + wave);
+              ctx.lineTo(p.x + 9, p.y + wave);
+              ctx.stroke();
+            }
+          }
+
+          // Awan Melayang
+          const clouds = [
+            { gx: -11, gy: -1, speed: 0.4 },
+            { gx: 2, gy: -12, speed: 0.3 },
+            { gx: 11, gy: 2, speed: 0.35 }
+          ];
+          const cloudTopColor = timeMode === 'storm' ? 'rgba(71, 85, 105, 0.95)' : timeMode === 'sunset' ? 'rgba(254, 215, 170, 0.9)' : timeMode === 'night' ? 'rgba(148, 163, 184, 0.6)' : 'rgba(255, 255, 255, 0.92)';
+          clouds.forEach((c, idx) => {
+            const drift = Math.sin(time * c.speed + idx) * 18;
+            const cp = isoToScreen(c.gx, c.gy);
+            drawVoxelBlock(ctx, cp.x + drift, cp.y - 55, 58, 29, 14, cloudTopColor, 'rgba(100, 116, 139, 0.6)', 'rgba(71, 85, 105, 0.6)');
+          });
+
+          // 3. KUMPULKAN DAN URUTKAN SELURUH VOXEL TILE
+          const allTiles = [];
+          const newHitboxes = [];
+
+          islands.forEach((isl, islIdx) => {
+            const r = isl.radius;
+            const centerScreen = isoToScreen(isl.gridX, isl.gridY);
+            newHitboxes.push({ id: isl.id, x: centerScreen.x, y: centerScreen.y - 14, hitRadius: r * 26 });
+
+            // Busa Pantai
+            const foamPulse = Math.sin(time * 2.5 + islIdx) * 2;
+            ctx.beginPath();
+            ctx.ellipse(centerScreen.x, centerScreen.y + 4, r * 22 + foamPulse, r * 11 + foamPulse * 0.5, 0, 0, Math.PI * 2);
+            ctx.fillStyle = timeMode === 'night' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.28)';
+            ctx.fill();
+
+            for (let dx = -r; dx <= r; dx++) {
+              for (let dy = -r; dy <= r; dy++) {
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > r + 0.35) continue;
+
+                const gx = isl.gridX + dx;
+                const gy = isl.gridY + dy;
+                const isShore = dist > r - 0.65;
+                const isPeak = dist < 1.35;
+
+                let topC = '#22c55e';
+                let leftC = '#16a34a';
+                let rightC = '#15803d';
+                let blockH = 14;
+
+                if (!isl.unlocked || isl.biome === 'desert') {
+                  topC = isShore ? '#fde68a' : '#eab308';
+                  leftC = '#ca8a04';
+                  rightC = '#a16207';
+                  blockH = isShore ? 8 : 13;
+                } else if (isShore) {
+                  topC = '#fef08a';
+                  leftC = '#eab308';
+                  rightC = '#ca8a04';
+                  blockH = 8;
+                } else if (isl.biome === 'snow') {
+                  topC = isPeak ? '#ffffff' : '#94a3b8';
+                  leftC = isPeak ? '#e2e8f0' : '#64748b';
+                  rightC = isPeak ? '#cbd5e1' : '#475569';
+                  blockH = isPeak ? 28 : 16;
+                } else if (isl.biome === 'mountain') {
+                  topC = isPeak ? '#f8fafc' : '#22c55e';
+                  leftC = isPeak ? '#cbd5e1' : '#16a34a';
+                  rightC = isPeak ? '#94a3b8' : '#15803d';
+                  blockH = isPeak ? 34 : 16;
+                } else if (isl.biome === 'hub') {
+                  topC = isPeak ? '#34d399' : '#4ade80';
+                  leftC = '#10b981';
+                  rightC = '#059669';
+                  blockH = isPeak ? 22 : 14;
+                }
+
+                const hash = Math.abs(Math.sin(gx * 12.9898 + gy * 78.233) * 43758.5453) % 1;
+                const treeThreshold = (isl.prosperity / 100) * 0.65;
+                const hasTree = !isShore && isl.unlocked && hash < treeThreshold;
+                const isCenterTower = dx === 0 && dy === 0;
+
+                allTiles.push({
+                  gx,
+                  gy,
+                  depth: gx + gy,
+                  topC,
+                  leftC,
+                  rightC,
+                  blockH,
+                  hasTree,
+                  isCenterTower,
+                  island: isl,
+                  isEastSlot: dx === 1 && dy === 0,
+                  isWestSlot: dx === -1 && dy === 0
+                });
+              }
+            }
+          });
+
+          // Depth sort
+          allTiles.sort((a, b) => a.depth - b.depth);
+
+          allTiles.forEach((tile) => {
+            const p = isoToScreen(tile.gx, tile.gy);
+            const isSelected = tile.island.id === selectedIslandId;
+            const isPulsing = tile.island.id === pulseIslandId;
+            const bounce = isPulsing ? Math.abs(Math.sin(time * 4)) * 8 : 0;
+
+            // Dasar air dangkal
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y + tileH / 2, tileW * 0.56, tileH * 0.56, 0, 0, Math.PI * 2);
+            ctx.fillStyle = isSelected ? 'rgba(255, 255, 255, 0.4)' : 'rgba(186, 230, 253, 0.35)';
+            ctx.fill();
+
+            // Balok Tanah
+            drawVoxelBlock(ctx, p.x, p.y - bounce, tileW, tileH, tile.blockH, tile.topC, tile.leftC, tile.rightC);
+
+            // Menara & Fasilitas yang dibangun pemain
+            if (tile.isCenterTower) {
+              const baseTop = p.y - tile.blockH - bounce;
+              const isNight = timeMode === 'night' || timeMode === 'aurora';
+              if (tile.island.biome === 'hub') {
+                drawVoxelBlock(ctx, p.x, baseTop, 24, 12, 18, isNight ? '#fef08a' : '#f8fafc', '#cbd5e1', '#94a3b8', isNight);
+                drawVoxelBlock(ctx, p.x, baseTop - 18, 16, 8, 12, '#10b981', '#059669', '#047857', isNight);
+              } else if (tile.island.unlocked) {
+                drawVoxelBlock(ctx, p.x, baseTop, 18, 9, 14, isNight ? '#fde047' : '#fef3c7', '#f59e0b', '#d97706', isNight);
+              }
+
+              // Warga Voxel Mini (NPC)
+              if (tile.island.unlocked) {
+                const walkCycle = Math.sin(time * 2 + tile.gx) * 8;
+                drawVoxelBlock(ctx, p.x + walkCycle, baseTop + 10, 8, 4, 8, '#3b82f6', '#2563eb', '#1d4ed8');
+                drawVoxelBlock(ctx, p.x + walkCycle, baseTop + 2, 10, 5, 3, '#0f172a', '#1e293b', '#0f172a');
+              }
+            } else if (tile.isEastSlot && (tile.island.facilities || []).includes('library')) {
+              // Bangunan Perpustakaan Voxel
+              const baseTop = p.y - tile.blockH - bounce;
+              drawVoxelBlock(ctx, p.x, baseTop, 16, 8, 12, '#38bdf8', '#0284c7', '#0369a1');
+              drawVoxelBlock(ctx, p.x, baseTop - 12, 12, 6, 6, '#facc15', '#eab308', '#ca8a04');
+            } else if (tile.isWestSlot && (tile.island.facilities || []).includes('lab')) {
+              // Bangunan Laboratorium Komputer
+              const baseTop = p.y - tile.blockH - bounce;
+              drawVoxelBlock(ctx, p.x, baseTop, 14, 7, 10, '#f1f5f9', '#cbd5e1', '#94a3b8');
+              drawVoxelBlock(ctx, p.x, baseTop - 10, 8, 4, 10, '#10b981', '#059669', '#047857');
+            } else if (tile.hasTree) {
+              const baseTop = p.y - tile.blockH - bounce;
+              drawVoxelBlock(ctx, p.x, baseTop, 8, 4, 8, '#92400e', '#78350f', '#451a03');
+              if (tile.island.biome === 'snow') {
+                drawVoxelBlock(ctx, p.x, baseTop - 7, 18, 9, 12, '#ffffff', '#e2e8f0', '#cbd5e1');
+              } else {
+                drawVoxelBlock(ctx, p.x, baseTop - 7, 20, 10, 12, '#16a34a', '#15803d', '#166534');
+                drawVoxelBlock(ctx, p.x, baseTop - 16, 12, 6, 8, '#22c55e', '#16a34a', '#15803d');
+              }
+            }
+          });
+
+          // 4. KABUT MISTERI (FOG OF WAR) DI ATAS PULAU TERKUNCI
+          islands.filter((isl) => !isl.unlocked).forEach((locked) => {
+            const p = isoToScreen(locked.gridX, locked.gridY);
+            for (let f = 0; f < 4; f++) {
+              const fogW = 54 + Math.sin(time * 2 + f) * 8;
+              const fogH = 26 + Math.cos(time * 2 + f) * 4;
+              const fogOffX = Math.sin(time * 1.5 + f * 1.2) * 16;
+              const fogOffY = -24 + Math.cos(time * 1.5 + f * 1.2) * 10;
+              ctx.beginPath();
+              ctx.ellipse(p.x + fogOffX, p.y + fogOffY, fogW, fogH, 0, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(241, 245, 249, 0.75)';
+              ctx.fill();
+            }
+          });
+
+          // 5. BOTOL HANYUT DI LAUTAN
+          const newBottleHitboxes = [];
+          bottles.forEach((bot) => {
+            if (bot.claimed) return;
+            const bp = isoToScreen(bot.gridX, bot.gridY);
+            const bob = Math.sin(time * 3 + bot.gridX) * 3;
+            const botY = bp.y + bob;
+
+            newBottleHitboxes.push({ id: bot.id, x: bp.x, y: botY, r: 20 });
+
+            // Riak air botol
+            ctx.beginPath();
+            ctx.arc(bp.x, botY + 4, 6 + Math.abs(bob), 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fill();
+
+            // Badan Botol Kaca Kering & Gabus
+            drawVoxelBlock(ctx, bp.x, botY, 12, 6, 8, 'rgba(56, 189, 248, 0.85)', 'rgba(14, 165, 233, 0.85)', 'rgba(2, 132, 199, 0.85)', true);
+            drawVoxelBlock(ctx, bp.x, botY - 8, 4, 2, 4, '#ca8a04', '#a16207', '#713f12');
+          });
+          bottleHitboxesRef.current = newBottleHitboxes;
+
+          // 6. KAPAL LAYAR PEMAIN
+          const targetIsland = islands.find((i) => i.id === selectedIslandId) || islands[0];
+          const targetIslandPos = isoToScreen(targetIsland.gridX + 1.8, targetIsland.gridY + 1.8);
+          const curBx = boatPos.x + (targetIslandPos.x - boatPos.x) * 0.04;
+          const curBy = boatPos.y + (targetIslandPos.y - boatPos.y) * 0.04;
+          setBoatPos({ x: curBx, y: curBy });
+
+          ctx.beginPath();
+          ctx.arc(curBx, curBy + 6, 7 + Math.sin(time * 4) * 2, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+          ctx.fill();
+
+          drawVoxelBlock(ctx, curBx, curBy, 18, 9, 7, '#b45309', '#92400e', '#78350f');
+          drawVoxelBlock(ctx, curBx, curBy - 7, 4, 2, 14, '#64748b', '#475569', '#334155');
+          drawVoxelBlock(ctx, curBx + 3, curBy - 15, 12, 6, 8, '#ffffff', '#f1f5f9', '#e2e8f0');
+          drawVoxelBlock(ctx, curBx - 3, curBy - 21, 6, 3, 3, '#10b981', '#059669', '#047857');
+
+          // 7. PARTIKEL SALJU, KUNANG-KUNANG, HUJAN BADAI & BURST
+          if (timeMode === 'storm') {
+            ctx.strokeStyle = 'rgba(226, 232, 240, 0.55)';
+            ctx.lineWidth = 1.5;
+            rainDropsRef.current.forEach((drop) => {
+              drop.y += drop.speed;
+              if (drop.y > rect.height) drop.y = -20;
+              ctx.beginPath();
+              ctx.moveTo(drop.x, drop.y);
+              ctx.lineTo(drop.x - 3, drop.y + drop.len);
+              ctx.stroke();
+            });
+          }
+
+          const snowCenter = isoToScreen(0, -7);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+          snowflakesRef.current.forEach((flake) => {
+            flake.y += flake.speed;
+            if (flake.y > -20) flake.y = -140 - Math.random() * 40;
+            ctx.beginPath();
+            ctx.arc(snowCenter.x + flake.x, snowCenter.y + flake.y, flake.radius, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          if (timeMode === 'night' || timeMode === 'aurora') {
+            firefliesRef.current.forEach((fly) => {
+              fly.phase += fly.speed;
+              const fp = isoToScreen(fly.gx, fly.gy);
+              const fx = fp.x + Math.sin(fly.phase) * 24;
+              const fy = fp.y + fly.offsetY + Math.cos(fly.phase * 1.5) * 12;
+              const glowAlpha = (Math.sin(fly.phase * 3) + 1) * 0.4 + 0.2;
+              ctx.fillStyle = `rgba(110, 231, 183, ${glowAlpha})`;
+              ctx.beginPath();
+              ctx.arc(fx, fy, 2.2, 0, Math.PI * 2);
+              ctx.fill();
+            });
+          }
+
+          if (burstParticlesRef.current.length > 0) {
+            burstParticlesRef.current.forEach((p) => {
+              p.x += p.vx;
+              p.y += p.vy;
+              p.vy += 0.2;
+              p.alpha -= 0.018;
+              ctx.save();
+              ctx.globalAlpha = Math.max(0, p.alpha);
+              ctx.fillStyle = p.color;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            });
+            burstParticlesRef.current = burstParticlesRef.current.filter((p) => p.alpha > 0);
+          }
+
+          // 8. LABEL PULAU
+          islands.forEach((isl) => {
+            const p = isoToScreen(isl.gridX, isl.gridY);
+            const labelY = p.y - 48;
+            const isSelected = isl.id === selectedIslandId;
+
+            ctx.font = '700 12px "Plus Jakarta Sans", sans-serif';
+            const titleWidth = ctx.measureText(isl.name).width;
+            ctx.font = '500 10px "Plus Jakarta Sans", sans-serif';
+            const subText = isl.unlocked ? `• ${isl.subtitle}` : '🔒 Kabut Misteri';
+            const subWidth = ctx.measureText(subText).width;
+
+            const boxW = Math.max(titleWidth, subWidth) + 26;
+            const boxH = 38;
+            const boxX = p.x - boxW / 2;
+            const boxY = labelY - boxH / 2;
+
+            ctx.fillStyle = isSelected ? 'rgba(16, 185, 129, 0.96)' : 'rgba(15, 23, 42, 0.88)';
+            ctx.beginPath();
+            ctx.roundRect(boxX, boxY, boxW, boxH, 10);
+            ctx.fill();
+
+            if (isSelected) {
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.font = '700 11.5px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText(isl.name, p.x, boxY + 16);
+
+            ctx.fillStyle = isSelected ? '#ecfdf5' : isl.unlocked ? '#6ee7b7' : '#fde047';
+            ctx.font = '600 9.5px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText(subText, p.x, boxY + 30);
+          });
+
+          hitboxesRef.current = newHitboxes;
+          ctx.restore();
+
+          animationFrameId = requestAnimationFrame(render);
+        };
+
+        animationFrameId = requestAnimationFrame(render);
+        return () => cancelAnimationFrame(animationFrameId);
+      }, [islands, selectedIslandId, camera, pulseIslandId, timeMode, boatPos, setBoatPos, bottles, drawVoxelBlock]);
+
+      // MOUSE / TOUCH GESTURES
+      const handlePointerDown = (e) => {
+        isDraggingRef.current = true;
+        movedDistanceRef.current = 0;
+        dragStartRef.current = { x: e.clientX - camera.x, y: e.clientY - camera.y };
+      };
+
+      const handlePointerMove = (e) => {
+        if (!isDraggingRef.current) return;
+        const nextX = e.clientX - dragStartRef.current.x;
+        const nextY = e.clientY - dragStartRef.current.y;
+        movedDistanceRef.current += Math.abs(nextX - camera.x) + Math.abs(nextY - camera.y);
+        setCamera((prev) => ({
+          ...prev,
+          x: Math.max(-500, Math.min(500, nextX)),
+          y: Math.max(-400, Math.min(400, nextY))
+        }));
+      };
+
+      const handlePointerUp = (e) => {
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
+
+        if (movedDistanceRef.current < 8 && canvasRef.current) {
+          const rect = canvasRef.current.getBoundingClientRect();
+          const worldX = (e.clientX - rect.left - rect.width / 2 - camera.x) / camera.zoom;
+          const worldY = (e.clientY - rect.top - rect.height / 2 - camera.y) / camera.zoom;
+
+          // Cek botol hanyut
+          for (const bh of bottleHitboxesRef.current) {
+            if (Math.hypot(worldX - bh.x, worldY - bh.y) <= bh.r) {
+              soundManager.playCoin();
+              onSelectBottle(bh.id);
+              return;
+            }
+          }
+
+          // Cek pulau
+          for (const hb of hitboxesRef.current) {
+            if (Math.hypot(worldX - hb.x, worldY - hb.y) <= hb.hitRadius) {
+              soundManager.playClick();
+              onSelectIsland(hb.id);
+              break;
+            }
+          }
+        }
+      };
+
+      // Multi-Touch Pinch to Zoom
+      const handleTouchStart = (e) => {
+        if (e.touches.length === 2) {
+          touchDistRef.current = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+        }
+      };
+
+      const handleTouchMove = (e) => {
+        if (e.touches.length === 2 && touchDistRef.current) {
+          const currentDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          const diff = (currentDist - touchDistRef.current) * 0.005;
+          setCamera((prev) => ({
+            ...prev,
+            zoom: Math.max(0.65, Math.min(1.75, Number((prev.zoom + diff).toFixed(2))))
+          }));
+          touchDistRef.current = currentDist;
+        }
+      };
+
+      const handleWheel = (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.12 : -0.12;
+        setCamera((prev) => ({
+          ...prev,
+          zoom: Math.max(0.65, Math.min(1.75, Number((prev.zoom + delta).toFixed(2))))
+        }));
+      };
+
+      return (
+        <canvas
+          ref={canvasRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={() => { touchDistRef.current = null; }}
+          onWheel={handleWheel}
+          aria-label="Peta Dunia EdTech World"
+          className="w-full h-full block cursor-grab active:cursor-grabbing touch-none"
+        />
+      );
+    }
+
+    // ========================================================================
+    // MINIMAP RADAR
+    // ========================================================================
+    function MiniMapRadar({ islands, selectedIslandId, onSelectIsland, camera, timeMode }) {
+      return (
+        <div className="p-2 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-white/15 shadow-xl flex flex-col items-center">
+          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+            <Icon name="Compass" className="w-3 h-3 text-emerald-400" /> Radar ({timeMode})
+          </div>
+          <div className="relative w-28 h-28 rounded-xl bg-sky-950/80 border border-sky-800/60 overflow-hidden">
+            {islands.map((isl) => {
+              const mx = 56 + isl.gridX * 6.5;
+              const my = 56 + isl.gridY * 6.5;
+              const isSelected = isl.id === selectedIslandId;
+              return (
+                <button
+                  key={isl.id}
+                  onClick={() => onSelectIsland(isl.id)}
+                  title={isl.name}
+                  style={{ left: `${mx}px`, top: `${my}px` }}
+                  className={`absolute w-2.5 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full cursor-pointer transition-transform ${
+                    isSelected ? 'bg-amber-400 ring-2 ring-white scale-125 z-10' : isl.unlocked ? 'bg-emerald-400' : 'bg-slate-600'
+                  }`}
+                />
+              );
+            })}
+            <div
+              style={{ left: `${56 - camera.x / 14}px`, top: `${56 - camera.y / 14}px` }}
+              className="absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 border border-white/50 rounded pointer-events-none"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // KOMPONEN UTAMA (APP)
+    // ========================================================================
+    function App() {
+      const [playerName, setPlayerName] = useState('Mahasiswa_TP');
+      const [dayStreak, setDayStreak] = useState(3);
+      const [xp, setXp] = useState(320);
+      const [citizens, setCitizens] = useState(2640);
+      const [passportId] = useState('TP-2026-088');
+      const [lastVisit, setLastVisit] = useState(getTodayKey());
+
+      const [islands, setIslands] = useState(INITIAL_ISLANDS);
+      const [quests, setQuests] = useState(INITIAL_QUESTS);
+      const [skillTree, setSkillTree] = useState(INITIAL_SKILL_TREE);
+      const [bottles, setBottles] = useState(INITIAL_BOTTLES);
+      const [poll, setPoll] = useState(INITIAL_POLL);
+      const [votedOptionId, setVotedOptionId] = useState(null);
+      const [alunMessages, setAlunMessages] = useState(INITIAL_ALUN_ALUN);
+
+      // Cuaca: 'day' | 'sunset' | 'night' | 'storm' | 'aurora'
+      const [timeMode, setTimeMode] = useState('day');
+      const [isMuted, setIsMuted] = useState(false);
+
+      // Kamera & Seleksi
+      const [camera, setCamera] = useState({ x: 0, y: 10, zoom: 1 });
+      const [selectedIslandId, setSelectedIslandId] = useState('isl-hub');
+      const [pulseIslandId, setPulseIslandId] = useState(null);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [burstTrigger, setBurstTrigger] = useState(null);
+      const [boatPos, setBoatPos] = useState({ x: 0, y: 0 });
+
+      // Modal: 'none' | 'island' | 'paspor' | 'misi' | 'skills' | 'wizard' | 'boss' | 'mentor' | 'bottle' | 'arena' | 'voting' | 'alun' | 'menu'
+      const [activeModal, setActiveModal] = useState('none');
+      const [selectedBottleId, setSelectedBottleId] = useState(null);
+      const [toast, setToast] = useState(null);
+
+      // Arena Fokus
+      const [arenaQuestId, setArenaQuestId] = useState('q-1');
+      const [arenaPresetMins, setArenaPresetMins] = useState(25);
+      const [arenaSeconds, setArenaSeconds] = useState(25 * 60);
+      const [arenaRunning, setArenaRunning] = useState(false);
+      const [rainSoundOn, setRainSoundOn] = useState(false);
+
+      const triggerToast = useCallback((msg) => {
+        setToast(msg);
+        setTimeout(() => setToast((curr) => (curr === msg ? null : curr)), 3800);
+      }, []);
+
+      const cycleWeather = () => {
+        soundManager.playClick();
+        const modes = ['day', 'sunset', 'night', 'storm', 'aurora'];
+        const next = modes[(modes.indexOf(timeMode) + 1) % modes.length];
+        setTimeMode(next);
+        triggerToast(`Cuaca & Waktu: ${next.toUpperCase()} ✨`);
+      };
+
+      const toggleMute = () => {
+        soundManager.muted = !isMuted;
+        setIsMuted(!isMuted);
+      };
+
+      const flyToIsland = (islandId) => {
+        const found = islands.find((i) => i.id === islandId);
+        if (!found) return;
+        setSelectedIslandId(islandId);
+        soundManager.playClick();
+        setCamera({ x: -found.gridX * 15, y: -found.gridY * 10, zoom: 1.25 });
+      };
+
+      const growIslandProsperity = useCallback((islandId, prosperityGain, xpGain, citizensGain, reason) => {
+        setIslands((prev) =>
+          prev.map((isl) => {
+            if (isl.id !== islandId) return isl;
+            const cleanName = isl.name.replace(' ?', '');
+            return {
+              ...isl,
+              name: cleanName,
+              subtitle: isl.unlocked ? isl.subtitle : 'Kawasan Terbuka',
+              biome: isl.biome === 'desert' ? 'forest' : isl.biome,
+              unlocked: true,
+              prosperity: Math.min(100, isl.prosperity + prosperityGain)
+            };
+          })
+        );
+        setXp((prev) => prev + xpGain);
+        setCitizens((prev) => prev + citizensGain);
+        setPulseIslandId(islandId);
+        setBurstTrigger({ x: 0, y: -20, t: Date.now() });
+        soundManager.playVictory();
+        triggerToast(`+${xpGain} XP & +${citizensGain} Penduduk! ${reason}`);
+      }, [triggerToast]);
+
+      const handleBuildFacility = (islandId, facilityType, costXp, name) => {
+        if (xp < costXp) {
+          triggerToast(`XP belum mencukupi (Butuh ${costXp} XP)!`);
+          return;
+        }
+        setXp((x) => x - costXp);
+        setIslands((prev) =>
+          prev.map((isl) => {
+            if (isl.id !== islandId) return isl;
+            const curFac = isl.facilities || [];
+            if (curFac.includes(facilityType)) return isl;
+            return {
+              ...isl,
+              facilities: [...curFac, facilityType],
+              prosperity: Math.min(100, isl.prosperity + 15)
+            };
+          })
+        );
+        soundManager.playBuild();
+        triggerToast(`Fasilitas ${name} berhasil dibangun di pulau!`);
+      };
+
+      const handleUnlockSkill = (skillId, costXp) => {
+        if (xp < costXp) {
+          triggerToast(`XP belum cukup (${xp}/${costXp} XP)`);
+          return;
+        }
+        setXp((x) => x - costXp);
+        setSkillTree((prev) =>
+          prev.map((sk) => (sk.id === skillId ? { ...sk, unlocked: true } : sk))
+        );
+        soundManager.playVictory();
+        triggerToast('Keahlian baru berhasil dibuka! Gelar bertambah.');
+      };
+
+      const handleCompleteQuest = (quest) => {
+        if (quest.done) return;
+        setQuests((prev) =>
+          prev.map((q) => (q.id === quest.id ? { ...q, done: true, completedMinutes: q.estimatedMinutes } : q))
+        );
+        growIslandProsperity(quest.islandId, 20, quest.xpReward, quest.citizensReward, `Misi "${quest.title}" tuntas!`);
+      };
+
+      const handleVote = (optionId) => {
+        if (votedOptionId) return;
+        setVotedOptionId(optionId);
+        setPoll((prev) => ({
+          ...prev,
+          options: prev.options.map((o) => (o.id === optionId ? { ...o, votes: o.votes + 1 } : o))
+        }));
+        setXp((prev) => prev + 20);
+        soundManager.playCoin();
+        triggerToast('Suaramu tercatat di Dewan Tekpend! +20 XP');
+      };
+
+      const handleClaimBottle = (bottleId) => {
+        setBottles((prev) =>
+          prev.map((b) => (b.id === bottleId ? { ...b, claimed: true } : b))
+        );
+        setXp((x) => x + 30);
+        soundManager.playCoin();
+        triggerToast('Pesan botol terpecahkan! +30 XP');
+        setActiveModal('none');
+      };
+
+      const selectedIsland = useMemo(
+        () => islands.find((i) => i.id === selectedIslandId) || islands[0],
+        [islands, selectedIslandId]
+      );
+
+      const activeBottle = useMemo(
+        () => bottles.find((b) => b.id === selectedBottleId) || bottles[0],
+        [bottles, selectedBottleId]
+      );
+
+      const unlockedCount = islands.filter((i) => i.unlocked).length;
+      const levelNumber = Math.floor(xp / 100) + 1;
+
+      return (
+        <div className="relative w-full h-full overflow-hidden">
+          {/* KANVAS ISOMETRIK */}
+          <IsometricWorldCanvas
+            islands={islands}
+            selectedIslandId={selectedIslandId}
+            onSelectIsland={(id) => {
+              setSelectedIslandId(id);
+              setActiveModal('island');
+            }}
+            camera={camera}
+            setCamera={setCamera}
+            pulseIslandId={pulseIslandId}
+            timeMode={timeMode}
+            burstTrigger={burstTrigger}
+            boatPos={boatPos}
+            setBoatPos={setBoatPos}
+            bottles={bottles}
+            onSelectBottle={(bId) => {
+              setSelectedBottleId(bId);
+              setActiveModal('bottle');
+            }}
+          />
+
+          {/* TOAST */}
+          {toast && (
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-slate-900/95 text-white text-xs font-semibold shadow-xl border border-emerald-400/40 flex items-center gap-2 backdrop-blur-md animate-bounce">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>{toast}</span>
+            </div>
+          )}
+
+          {/* HUD KIRI ATAS */}
+          <div className="fixed top-3.5 left-3.5 z-20 flex flex-col gap-2 max-w-[92vw]">
+            <div className="inline-flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-slate-900/90 backdrop-blur-md text-white shadow-lg border border-white/10 self-start">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-inner">
+                <Icon name="Compass" className="w-5 h-5 text-slate-950" />
+              </div>
+              <div>
+                <h1 className="font-extrabold text-sm tracking-wide leading-none uppercase">EDTECH WORLD</h1>
+                <span className="text-[11px] text-emerald-300 font-medium">Ultimate Learning Metaverse</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <div className="px-3 py-2 rounded-xl bg-amber-100/95 backdrop-blur-md border border-amber-300 shadow-md text-slate-900">
+                <div className="font-extrabold text-xs leading-none">HARI KE-{dayStreak}</div>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>14 online</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('paspor')}
+                className="px-3 py-2 rounded-xl bg-white/95 hover:bg-white backdrop-blur-md border border-slate-200 shadow-md text-center cursor-pointer"
+              >
+                <div className="font-extrabold text-xs text-slate-900 leading-none">{citizens.toLocaleString('id-ID')}</div>
+                <div className="text-[10px] font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
+                  <Icon name="Users" className="w-3 h-3 text-indigo-600" />
+                  <span>penduduk</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('misi')}
+                className="px-3 py-2 rounded-xl bg-white/95 hover:bg-white backdrop-blur-md border border-slate-200 shadow-md text-center cursor-pointer"
+              >
+                <div className="font-extrabold text-xs text-slate-900 leading-none">{unlockedCount}/{islands.length}</div>
+                <div className="text-[10px] font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
+                  <Icon name="Flag" className="w-3 h-3 text-emerald-600" />
+                  <span>kawasan</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveModal('skills')}
+                className="px-3 py-2 rounded-xl bg-white/95 hover:bg-white backdrop-blur-md border border-slate-200 shadow-md text-center cursor-pointer"
+              >
+                <div className="font-extrabold text-xs text-slate-900 leading-none">Lv.{levelNumber}</div>
+                <div className="text-[10px] font-semibold text-slate-500 mt-1 flex items-center justify-center gap-1">
+                  <Icon name="Award" className="w-3 h-3 text-amber-600" />
+                  <span>{xp} XP</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* KONTROL KANAN ATAS */}
+          <div className="fixed top-3.5 right-3.5 z-20 flex items-center gap-2">
+            <button
+              onClick={cycleWeather}
+              title="Ganti Cuaca Dunia"
+              className="px-3 py-2 rounded-xl bg-slate-900/90 text-white border border-white/10 hover:bg-slate-800 shadow-lg cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+            >
+              {timeMode === 'day' ? '☀️ Siang' : timeMode === 'sunset' ? '🌅 Senja' : timeMode === 'night' ? '🌙 Malam' : timeMode === 'storm' ? '⛈️ Badai' : '🌌 Aurora'}
+            </button>
+
+            <button
+              onClick={toggleMute}
+              className="p-2.5 rounded-xl bg-slate-900/90 text-white border border-white/10 hover:bg-slate-800 shadow-lg cursor-pointer"
+            >
+              <Icon name={isMuted ? 'VolumeX' : 'Volume2'} className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setActiveModal('menu')}
+              className="px-3.5 py-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-bold shadow-lg border border-white/10 flex items-center gap-2 cursor-pointer"
+            >
+              <Icon name="Menu" className="w-4 h-4 text-emerald-400" />
+              <span>Menu</span>
+            </button>
+          </div>
+
+          {/* RADAR MINIMAP */}
+          <div className="fixed bottom-20 left-3.5 z-20 hidden md:block">
+            <MiniMapRadar
+              islands={islands}
+              selectedIslandId={selectedIslandId}
+              onSelectIsland={flyToIsland}
+              camera={camera}
+              timeMode={timeMode}
+            />
+          </div>
+
+          {/* OVERLAY DOCK BAWAH LENGKAP */}
+          <div className="fixed bottom-3 inset-x-0 z-20 flex flex-col items-center px-3 pointer-events-none gap-2">
+            <div className="pointer-events-auto w-full max-w-md px-3.5 py-2 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon name="Vote" className="w-4 h-4 text-indigo-600 shrink-0" />
+                <p className="text-[11px] text-slate-700 truncate">
+                  <span className="text-slate-400 font-semibold">Dewan: </span>
+                  <strong className="text-slate-900">{poll.question}</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveModal('voting')}
+                className="shrink-0 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] cursor-pointer"
+              >
+                {votedOptionId ? 'Hasil ›' : 'Ikut ›'}
+              </button>
+            </div>
+
+            <nav
+              aria-label="Navigasi Utama"
+              className="pointer-events-auto bg-slate-900/95 backdrop-blur-xl p-1.5 rounded-2xl border border-white/15 shadow-2xl flex items-center gap-1 sm:gap-1.5 overflow-x-auto max-w-full"
+            >
+              {[
+                { id: 'none', label: 'Peta', icon: 'Map' },
+                { id: 'island', label: 'Kawasan', icon: 'BookOpen' },
+                { id: 'skills', label: 'Skill Tree', icon: 'GitFork' },
+                { id: 'misi', label: 'Misi', icon: 'ListChecks' },
+                { id: 'wizard', label: 'Desain ADDIE', icon: 'FileSpreadsheet' },
+                { id: 'boss', label: 'Boss Battle', icon: 'Flame' },
+                { id: 'mentor', label: 'Prof. Voxel', icon: 'Sparkles' },
+                { id: 'arena', label: 'Arena', icon: 'Timer' },
+                { id: 'paspor', label: 'Paspor', icon: 'IdCard' }
+              ].map((nav) => {
+                const isActive = activeModal === nav.id;
+                return (
+                  <button
+                    key={nav.id}
+                    onClick={() => {
+                      soundManager.playClick();
+                      setActiveModal(nav.id);
+                    }}
+                    className={`flex flex-col items-center justify-center px-2.5 py-1.5 rounded-xl text-[10px] font-bold transition-all min-w-[50px] cursor-pointer ${
+                      isActive ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Icon name={nav.icon} className="w-4 h-4 mb-0.5" />
+                    <span>{nav.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* MODAL 1: DETAIL KAWASAN + BANGUN FASILITAS & MULTI-KUIS */}
+          {activeModal === 'island' && (
+            <EnhancedIslandDetailModal
+              island={selectedIsland}
+              quests={quests.filter((q) => q.islandId === selectedIsland.id)}
+              onClose={() => setActiveModal('none')}
+              onCompleteQuest={handleCompleteQuest}
+              onStartArena={(qId) => {
+                setArenaQuestId(qId);
+                setActiveModal('arena');
+              }}
+              onPassQuiz={() => {
+                growIslandProsperity(selectedIsland.id, 25, 40, 90, `Kuis kawasan "${selectedIsland.name}" berhasil dijawab!`);
+              }}
+              onBuildFacility={(type, cost, name) => handleBuildFacility(selectedIsland.id, type, cost, name)}
+              userXp={xp}
+            />
+          )}
+
+          {/* MODAL 2: POHON KETERAMPILAN (SKILL TREE) */}
+          {activeModal === 'skills' && (
+            <SkillTreeModal
+              skillTree={skillTree}
+              userXp={xp}
+              onUnlockSkill={handleUnlockSkill}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 3: WIZARD DESAIN PEMBELAJARAN ADDIE */}
+          {activeModal === 'wizard' && (
+            <AddieProjectWizardModal
+              onClose={() => setActiveModal('none')}
+              onSaveProject={(proj) => {
+                setXp((x) => x + 75);
+                soundManager.playVictory();
+                triggerToast('Modul ADDIE berhasil dibuat & diunduh! (+75 XP)');
+              }}
+            />
+          )}
+
+          {/* MODAL 4: BOSS BATTLE (MONSTER BEBAN KOGNITIF) */}
+          {activeModal === 'boss' && (
+            <BossBattleModal
+              onClose={() => setActiveModal('none')}
+              onDefeatBoss={() => {
+                setXp((x) => x + 150);
+                setCitizens((c) => c + 300);
+                soundManager.playVictory();
+                triggerToast('Luar Biasa! Monster Beban Kognitif berhasil ditaklukkan! (+150 XP)');
+              }}
+            />
+          )}
+
+          {/* MODAL 5: MENTOR AI PROF. VOXEL */}
+          {activeModal === 'mentor' && (
+            <ProfVoxelMentorModal
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 6: BOTOL HANYUT */}
+          {activeModal === 'bottle' && activeBottle && (
+            <BottleMessageModal
+              bottle={activeBottle}
+              onClaim={() => handleClaimBottle(activeBottle.id)}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL LAINNYA (PASPOR, MISI, ARENA, VOTING, ALUN-ALUN, MENU) */}
+          {activeModal === 'paspor' && (
+            <PasporModal
+              playerName={playerName}
+              setPlayerName={setPlayerName}
+              passportId={passportId}
+              dayStreak={dayStreak}
+              xp={xp}
+              levelNumber={levelNumber}
+              citizens={citizens}
+              islands={islands}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {activeModal === 'misi' && (
+            <MisiAddieModal
+              quests={quests}
+              islands={islands}
+              onClose={() => setActiveModal('none')}
+              onCompleteQuest={handleCompleteQuest}
+              onStartArena={(qId) => {
+                setArenaQuestId(qId);
+                setActiveModal('arena');
+              }}
+            />
+          )}
+
+          {activeModal === 'arena' && (
+            <ArenaFokusModal
+              quests={quests}
+              islands={islands}
+              arenaQuestId={arenaQuestId}
+              setArenaQuestId={setArenaQuestId}
+              arenaPresetMins={arenaPresetMins}
+              setArenaPresetMins={(m) => {
+                setArenaRunning(false);
+                setArenaPresetMins(m);
+                setArenaSeconds(m * 60);
+              }}
+              arenaSeconds={arenaSeconds}
+              setArenaSeconds={setArenaSeconds}
+              arenaRunning={arenaRunning}
+              setArenaRunning={setArenaRunning}
+              rainSoundOn={rainSoundOn}
+              setRainSoundOn={setRainSoundOn}
+              onManualFinish={() => {
+                setArenaRunning(false);
+                const q = quests.find((item) => item.id === arenaQuestId);
+                if (q) {
+                  setQuests((all) =>
+                    all.map((item) => (item.id === q.id ? { ...item, completedMinutes: item.completedMinutes + arenaPresetMins } : item))
+                  );
+                  growIslandProsperity(q.islandId, 15, 35, 65, 'Sesi fokus menumbuhkan pepohonan pulau!');
+                }
+                setArenaSeconds(arenaPresetMins * 60);
+              }}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {activeModal === 'voting' && (
+            <VotingModal poll={poll} votedOptionId={votedOptionId} onVote={handleVote} onClose={() => setActiveModal('none')} />
+          )}
+
+          {activeModal === 'menu' && (
+            <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+                <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+                  <h2 className="font-bold text-sm">Fitur EdTech World Ultimate</h2>
+                  <button onClick={() => setActiveModal('none')} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                    <Icon name="X" className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-5 space-y-2 text-xs">
+                  <p>• 🌊 <strong>Botol Hanyut:</strong> Klik botol kaca di laut untuk kuis & kutipan tokoh.</p>
+                  <p>• 🌳 <strong>Pohon Keahlian:</strong> Buka skill tree Tekpend dengan XP.</p>
+                  <p>• ⚔️ <strong>Boss Battle:</strong> Taklukkan Monster Beban Kognitif.</p>
+                  <p>• 📝 <strong>Desain ADDIE:</strong> Wizard pembuat dokumen RPP/Modul ajar.</p>
+                  <p>• 🤖 <strong>Prof. Voxel:</strong> Mentor AI materi kuliah Tekpend.</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: DETAIL KAWASAN + BANGUN FASILITAS VOXEL
+    // ========================================================================
+    function EnhancedIslandDetailModal({ island, quests, onClose, onCompleteQuest, onStartArena, onPassQuiz, onBuildFacility, userXp }) {
+      const [tab, setTab] = useState('summary'); // 'summary' | 'build' | 'quiz' | 'quests'
+      const [selectedQuizIdx, setSelectedQuizIdx] = useState(0);
+      const [selectedOpt, setSelectedOpt] = useState(null);
+      const [quizAnswered, setQuizAnswered] = useState(false);
+
+      const quizList = island.quizzes || [];
+      const curQuiz = quizList[selectedQuizIdx] || quizList[0];
+
+      const handleCheckQuiz = () => {
+        if (selectedOpt === null || quizAnswered || !curQuiz) return;
+        setQuizAnswered(true);
+        if (selectedOpt === curQuiz.ans) onPassQuiz();
+      };
+
+      const facilities = island.facilities || [];
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[88vh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">{island.course}</span>
+                <h2 className="font-extrabold text-base">{island.name}</h2>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex border-b border-slate-200 px-6 pt-2 bg-slate-50 text-xs font-bold gap-4 overflow-x-auto">
+              <button onClick={() => setTab('summary')} className={`py-2.5 border-b-2 cursor-pointer ${tab === 'summary' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'}`}>
+                📖 Teori
+              </button>
+              <button onClick={() => setTab('build')} className={`py-2.5 border-b-2 cursor-pointer ${tab === 'build' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'}`}>
+                🏗️ Fasilitas
+              </button>
+              <button onClick={() => setTab('quiz')} className={`py-2.5 border-b-2 cursor-pointer ${tab === 'quiz' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'}`}>
+                ⭐ Kuis ({quizList.length})
+              </button>
+              <button onClick={() => setTab('quests')} className={`py-2.5 border-b-2 cursor-pointer ${tab === 'quests' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'}`}>
+                🎯 Misi ({quests.length})
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 text-xs">
+              {tab === 'summary' && (
+                <div className="space-y-4">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div className="flex items-center justify-between font-bold mb-1.5">
+                      <span className="text-slate-700">Tingkat Kemakmuran Pulau</span>
+                      <span className="text-emerald-600">{island.prosperity}%</span>
+                    </div>
+                    <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" style={{ width: `${island.prosperity}%` }} />
+                    </div>
+                    <p className="text-slate-600 mt-2.5 leading-relaxed">{island.summary}</p>
+                  </div>
+
+                  {island.concepts && (
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-slate-900">Konsep Kunci:</h4>
+                      {island.concepts.map((concept, idx) => (
+                        <div key={idx} className="p-3 rounded-xl bg-indigo-50/60 border border-indigo-100 text-slate-800 leading-relaxed">
+                          {concept}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB BANGUN FASILITAS VOXEL */}
+              {tab === 'build' && (
+                <div className="space-y-3">
+                  <p className="text-slate-500">Bangun fasilitas di pulau ini untuk meningkatkan kemakmuran dan menumbuhkan peradaban belajar:</p>
+
+                  <div className="p-3.5 rounded-2xl border flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-slate-900">📚 Perpustakaan Digital Voxel</h4>
+                      <p className="text-[11px] text-slate-500">Meningkatkan kemakmuran pulau +15%</p>
+                    </div>
+                    {facilities.includes('library') ? (
+                      <span className="text-emerald-600 font-bold">✓ Sudah Dibangun</span>
+                    ) : (
+                      <button
+                        onClick={() => onBuildFacility('library', 50, 'Perpustakaan Digital')}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-bold cursor-pointer hover:bg-indigo-700"
+                      >
+                        Bangun (50 XP)
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl border flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-slate-900">💻 Laboratorium Komputer AI</h4>
+                      <p className="text-[11px] text-slate-500">Pusat pengembangan multimedia interaktif (+15%)</p>
+                    </div>
+                    {facilities.includes('lab') ? (
+                      <span className="text-emerald-600 font-bold">✓ Sudah Dibangun</span>
+                    ) : (
+                      <button
+                        onClick={() => onBuildFacility('lab', 80, 'Laboratorium Komputer')}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-bold cursor-pointer hover:bg-indigo-700"
+                      >
+                        Bangun (80 XP)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB KUIS */}
+              {tab === 'quiz' && curQuiz && (
+                <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3">
+                  <div className="flex items-center justify-between font-bold text-indigo-950">
+                    <span>Soal {selectedQuizIdx + 1} dari {quizList.length}</span>
+                    <span className="text-xs text-indigo-600">+40 XP</span>
+                  </div>
+                  <p className="font-semibold text-slate-800 text-sm">{curQuiz.q}</p>
+                  <div className="space-y-2">
+                    {curQuiz.opts.map((opt, idx) => {
+                      const isPicked = selectedOpt === idx;
+                      let btnStyle = 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50';
+                      if (quizAnswered) {
+                        if (idx === curQuiz.ans) btnStyle = 'bg-emerald-500 text-white border-emerald-600 font-bold';
+                        else if (isPicked) btnStyle = 'bg-rose-500 text-white border-rose-600';
+                      } else if (isPicked) {
+                        btnStyle = 'bg-indigo-600 text-white border-indigo-600 font-semibold';
+                      }
+                      return (
+                        <button key={idx} onClick={() => !quizAnswered && setSelectedOpt(idx)} className={`w-full text-left px-3.5 py-2.5 rounded-xl border cursor-pointer ${btnStyle}`}>
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {!quizAnswered ? (
+                    <button onClick={handleCheckQuiz} disabled={selectedOpt === null} className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold cursor-pointer disabled:opacity-40">
+                      Periksa Jawaban
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between pt-2">
+                      <p className="font-bold text-emerald-700">
+                        {selectedOpt === curQuiz.ans ? 'Benar sekali! (+40 XP & +90 Penduduk)' : 'Belum tepat, coba pahami kembali materinya!'}
+                      </p>
+                      {selectedQuizIdx < quizList.length - 1 && (
+                        <button onClick={() => { setSelectedQuizIdx(selectedQuizIdx + 1); setSelectedOpt(null); setQuizAnswered(false); }} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs">
+                          Soal Berikutnya →
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB MISI */}
+              {tab === 'quests' && (
+                <div className="space-y-2">
+                  {quests.map((q) => (
+                    <div key={q.id} className="p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">{q.stage}</span>
+                        <h4 className={`font-bold mt-1 ${q.done ? 'line-through text-slate-400' : 'text-slate-900'}`}>{q.title}</h4>
+                      </div>
+                      {!q.done && (
+                        <button onClick={() => onCompleteQuest(q)} className="px-2.5 py-1.5 rounded-lg bg-emerald-500 text-white font-bold cursor-pointer">
+                          Selesai
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: POHON KETERAMPILAN (SKILL TREE)
+    // ========================================================================
+    function SkillTreeModal({ skillTree, userXp, onUnlockSkill, onClose }) {
+      const branches = ['Desain Instruksional', 'Media Pembelajaran', 'Evaluasi & Teori'];
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[88vh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Icon name="GitFork" className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h2 className="font-extrabold text-sm">Pohon Keahlian Teknologi Pendidikan</h2>
+                  <span className="text-[11px] text-emerald-300">XP Tersedia: {userXp} XP</span>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5 text-xs">
+              {branches.map((bName) => (
+                <div key={bName} className="space-y-2">
+                  <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> {bName}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {skillTree.filter((sk) => sk.branch === bName).map((sk) => (
+                      <div
+                        key={sk.id}
+                        className={`p-3.5 rounded-2xl border skill-card flex flex-col justify-between ${
+                          sk.unlocked ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200 opacity-70'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${sk.unlocked ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                              {sk.unlocked ? 'TERBUKA' : `${sk.xpReq} XP`}
+                            </span>
+                            <span>{sk.unlocked ? '⭐' : '🔒'}</span>
+                          </div>
+                          <h4 className="font-bold text-slate-900">{sk.title}</h4>
+                          <p className="text-[10px] text-slate-500 mt-1">{sk.desc}</p>
+                        </div>
+                        {!sk.unlocked && (
+                          <button
+                            onClick={() => onUnlockSkill(sk.id, sk.xpReq)}
+                            className="mt-3 w-full py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] cursor-pointer"
+                          >
+                            Buka ({sk.xpReq} XP)
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: BOTOL HANYUT (MESSAGE IN A BOTTLE)
+    // ========================================================================
+    function BottleMessageModal({ bottle, onClaim, onClose }) {
+      const [pickedOpt, setPickedOpt] = useState(null);
+      const [answered, setAnswered] = useState(false);
+
+      const handleCheck = () => {
+        setAnswered(true);
+        if (pickedOpt === bottle.ans) onClaim();
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🍾</span>
+                <h3 className="font-extrabold text-sm">Pesan Botol Hanyut dari Lautan</h3>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-950 text-xs italic leading-relaxed">
+              “{bottle.quote}”
+              <span className="block not-italic font-bold text-amber-800 mt-2">— {bottle.author}</span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <h4 className="font-bold text-slate-900">Kuis Kilat (+{bottle.rewardXp} XP):</h4>
+              <p className="font-semibold text-slate-700">{bottle.question}</p>
+              <div className="space-y-1.5">
+                {bottle.options.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => !answered && setPickedOpt(idx)}
+                    className={`w-full text-left p-2.5 rounded-xl border text-xs cursor-pointer ${
+                      pickedOpt === idx ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              {!answered ? (
+                <button
+                  onClick={handleCheck}
+                  disabled={pickedOpt === null}
+                  className="w-full mt-2 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer disabled:opacity-40"
+                >
+                  Pecahkan Botol (+30 XP)
+                </button>
+              ) : (
+                <p className="text-center font-bold text-emerald-600">Jawaban benar! Poin XP ditambahkan.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: WIZARD DESAIN PEMBELAJARAN ADDIE
+    // ========================================================================
+    function AddieProjectWizardModal({ onClose, onSaveProject }) {
+      const [title, setTitle] = useState('');
+      const [audience, setAudience] = useState('');
+      const [objective, setObjective] = useState('');
+      const [mediaChoice, setMediaChoice] = useState('Video Microlearning + Kuis Interaktif');
+      const [evaluation, setEvaluation] = useState('Pre-test & Post-test diagnostik formatif');
+
+      const handleDownloadDoc = () => {
+        if (!title.trim()) return;
+        const textDoc = `============================================================
+RANCANGAN MODEL PEMBELAJARAN ADDIE
+EDTECH WORLD LEARNING DESIGN DOCUMENT
+============================================================
+Judul Modul/Materi : ${title}
+Sasaran Peserta    : ${audience}
+
+1. TAHAP ANALYSIS (Analisis Kebutuhan & Peserta):
+   ${audience}
+
+2. TAHAP DESIGN (Tujuan Pembelajaran Format ABCD):
+   ${objective}
+
+3. TAHAP DEVELOPMENT (Pemilihan Media Model ASSURE):
+   Media yang Digunakan: ${mediaChoice}
+
+4. TAHAP IMPLEMENTATION (Langkah Pelaksanaan):
+   Pembelajaran berbasis blended learning dengan simulasi interaktif.
+
+5. TAHAP EVALUATION (Asesmen Ketercapaian):
+   ${evaluation}
+
+Dibuat otomatis via EdTech World Wizard
+Tanggal: ${new Date().toLocaleDateString('id-ID')}
+============================================================`;
+
+        const blob = new Blob([textDoc], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Rancangan_ADDIE_${title.replace(/\s+/g, '_')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        onSaveProject({ title, audience, objective, mediaChoice });
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[88vh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <h2 className="font-extrabold text-sm">Penyusun Modul Ajar ADDIE</h2>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-3.5 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Judul Materi / Topik Modul</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Media Pembelajaran Berbasis Canva"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Fase Analysis (Karakteristik Siswa)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Siswa SMP kelas 8, memiliki gaya belajar visual..."
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Fase Design (Tujuan Pembelajaran ABCD)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Setelah menonton video, siswa mampu menjelaskan 3 prinsip Mayer dengan benar..."
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Fase Development (Media Terpilih)</label>
+                <select
+                  value={mediaChoice}
+                  onChange={(e) => setMediaChoice(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200"
+                >
+                  <option value="Video Microlearning + Kuis Interaktif">Video Microlearning + Kuis Interaktif</option>
+                  <option value="Infografis Cetak + QR Code Audio">Infografis Cetak + QR Code Audio</option>
+                  <option value="Simulasi Virtual Lab 3D">Simulasi Virtual Lab 3D</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t">
+                <button onClick={onClose} className="px-4 py-2 text-slate-500 font-bold cursor-pointer">
+                  Batal
+                </button>
+                <button
+                  onClick={handleDownloadDoc}
+                  disabled={!title.trim()}
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer disabled:opacity-40"
+                >
+                  Unduh Dokumen (.TXT) & Klaim (+75 XP)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: BOSS BATTLE (MONSTER BEBAN KOGNITIF)
+    // ========================================================================
+    function BossBattleModal({ onClose, onDefeatBoss }) {
+      const [curQIdx, setCurQIdx] = useState(0);
+      const [bossHp, setBossHp] = useState(100);
+      const [timeLeft, setTimeLeft] = useState(90);
+      const [battleOver, setBattleOver] = useState(false);
+      const [won, setWon] = useState(false);
+
+      useEffect(() => {
+        if (battleOver) return;
+        const timer = setInterval(() => {
+          setTimeLeft((t) => {
+            if (t <= 1) {
+              setBattleOver(true);
+              setWon(false);
+              return 0;
+            }
+            return t - 1;
+          });
+        }, 1000);
+        return () => clearInterval(timer);
+      }, [battleOver]);
+
+      const handleAnswer = (idx) => {
+        if (battleOver) return;
+        if (idx === BOSS_QUESTIONS[curQIdx].ans) {
+          soundManager.playCoin();
+          const nextHp = bossHp - 20;
+          setBossHp(nextHp);
+          if (nextHp <= 0) {
+            setBattleOver(true);
+            setWon(true);
+            onDefeatBoss();
+          } else {
+            setCurQIdx((prev) => prev + 1);
+          }
+        } else {
+          soundManager.playThunder();
+          setTimeLeft((t) => Math.max(0, t - 15)); // Penalty waktu
+        }
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-slate-900 text-white shadow-2xl border border-rose-500/30 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Icon name="Flame" className="w-5 h-5 text-rose-500" />
+                <h3 className="font-extrabold text-sm">Boss Battle: Monster Beban Kognitif</h3>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Boss HP Bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-rose-400">Monster HP: {bossHp}%</span>
+                <span className="text-amber-400">⏳ {timeLeft}s tersisa</span>
+              </div>
+              <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-rose-900">
+                <div className="h-full bg-gradient-to-r from-rose-600 to-amber-500 transition-all duration-300" style={{ width: `${bossHp}%` }} />
+              </div>
+            </div>
+
+            {!battleOver ? (
+              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-3 text-xs">
+                <div className="text-[10px] text-slate-400">Soal {curQIdx + 1} dari 5 (Salah = -15 detik)</div>
+                <p className="font-bold text-sm text-slate-100">{BOSS_QUESTIONS[curQIdx].q}</p>
+                <div className="space-y-1.5">
+                  {BOSS_QUESTIONS[curQIdx].opts.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleAnswer(idx)}
+                      className="w-full text-left p-2.5 rounded-xl bg-slate-700 hover:bg-indigo-600 transition-colors font-semibold cursor-pointer"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : won ? (
+              <div className="text-center py-6 space-y-3">
+                <div className="text-4xl">🏆</div>
+                <h4 className="font-extrabold text-base text-emerald-400">BOSS KALAH TELAK!</h4>
+                <p className="text-xs text-slate-300">
+                  Kamu berhasil menaklukkan Monster Beban Kognitif dan meraih +150 XP serta gelar "Penakluk Beban Kognitif".
+                </p>
+                <button onClick={onClose} className="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
+                  Tutup & Rayakan
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-3">
+                <div className="text-4xl">💀</div>
+                <h4 className="font-extrabold text-base text-rose-400">WAKTU HABIS!</h4>
+                <p className="text-xs text-slate-300">Beban kognitif menguasaimu. Pelajari kembali materi Mayer dan coba lagi.</p>
+                <button onClick={onClose} className="px-5 py-2 rounded-xl bg-slate-700 text-white font-bold text-xs cursor-pointer">
+                  Kembali
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: AI MENTOR PROF. VOXEL
+    // ========================================================================
+    function ProfVoxelMentorModal({ onClose }) {
+      const [selectedQ, setSelectedQ] = useState(PROF_VOXEL_KNOWLEDGE[0]);
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-indigo-700 to-indigo-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center text-slate-950 font-bold">
+                  🎓
+                </div>
+                <div>
+                  <h2 className="font-extrabold text-sm">Konsultasi Prof. Voxel</h2>
+                  <span className="text-[10px] text-indigo-200">Mentor AI Teknologi Pendidikan</span>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 text-xs">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {PROF_VOXEL_KNOWLEDGE.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedQ(item)}
+                    className={`px-3 py-1.5 rounded-xl font-bold shrink-0 cursor-pointer ${
+                      selectedQ.topic === item.topic ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {item.topic}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
+                <div className="font-bold text-indigo-900 text-sm">❓ {selectedQ.question}</div>
+                <p className="text-slate-700 leading-relaxed pt-2 border-t border-indigo-200">
+                  {selectedQ.answer}
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+                💡 <strong>Tips dari Prof. Voxel:</strong> Terapkan konsep ini ke dalam perancangan media interaktifmu di tab *Misi ADDIE* untuk memanen XP lebih banyak!
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL STANDARD LAINNYA
+    // ========================================================================
+    function PasporModal({ playerName, setPlayerName, passportId, dayStreak, xp, levelNumber, citizens, islands, onClose }) {
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Icon name="IdCard" className="w-5 h-5 text-amber-300" />
+                <h2 className="font-extrabold text-sm uppercase">Paspor Warga Tekpend</h2>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200">
+                  <div className="font-extrabold text-base text-amber-700">Hari {dayStreak}</div>
+                  <div className="text-[10px] text-amber-900/70">Streak</div>
+                </div>
+                <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-200">
+                  <div className="font-extrabold text-base text-indigo-700">Lv.{levelNumber}</div>
+                  <div className="text-[10px] text-indigo-900/70">{xp} XP</div>
+                </div>
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+                  <div className="font-extrabold text-base text-emerald-700">{citizens}</div>
+                  <div className="text-[10px] text-emerald-900/70">Penduduk</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function MisiAddieModal({ quests, islands, onClose, onCompleteQuest, onStartArena }) {
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <h2 className="font-extrabold text-sm">Misi Kawasan ADDIE</h2>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer"><Icon name="X" className="w-4 h-4" /></button>
+            </div>
+            <div className="p-5 overflow-y-auto space-y-2.5 text-xs">
+              {quests.map((q) => (
+                <div key={q.id} className="p-3.5 rounded-2xl border flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">{q.stage}</span>
+                    <h3 className={`font-bold mt-1 ${q.done ? 'line-through text-slate-400' : 'text-slate-900'}`}>{q.title}</h3>
+                  </div>
+                  {!q.done ? (
+                    <button onClick={() => onCompleteQuest(q)} className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-bold cursor-pointer">Selesai</button>
+                  ) : <span className="text-emerald-600 font-bold">✓ Tuntas</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ArenaFokusModal({ arenaPresetMins, setArenaPresetMins, arenaSeconds, arenaRunning, setArenaRunning, onManualFinish, onClose }) {
+      const mins = String(Math.floor(arenaSeconds / 60)).padStart(2, '0');
+      const secs = String(arenaSeconds % 60).padStart(2, '0');
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-slate-900 text-white shadow-2xl border border-white/15 p-6 text-center space-y-4">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="font-bold text-sm">Arena Fokus</h3>
+              <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg cursor-pointer"><Icon name="X" className="w-4 h-4" /></button>
+            </div>
+            <div className="text-6xl font-mono font-extrabold text-emerald-400 py-3">{mins}:{secs}</div>
+            <div className="flex justify-center gap-2">
+              <button onClick={() => setArenaRunning(!arenaRunning)} className="px-6 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
+                {arenaRunning ? 'Jeda' : 'Mulai'}
+              </button>
+              <button onClick={onManualFinish} className="px-4 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs cursor-pointer">
+                Catat Selesai (+35 XP)
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function VotingModal({ poll, votedOptionId, onVote, onClose }) {
+      const totalVotes = poll.options.reduce((sum, o) => sum + o.votes, 0) || 1;
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-sm">Dewan Keputusan Tekpend</h3>
+              <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg cursor-pointer"><Icon name="X" className="w-4 h-4" /></button>
+            </div>
+            <p className="font-bold text-xs text-slate-800">{poll.question}</p>
+            <div className="space-y-2 text-xs">
+              {poll.options.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => onVote(opt.id)}
+                  disabled={Boolean(votedOptionId)}
+                  className="w-full text-left p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer"
+                >
+                  <div className="flex justify-between font-bold"><span>{opt.label}</span><span>{Math.round((opt.votes / totalVotes) * 100)}%</span></div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
