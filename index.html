@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <title>EdTech World — Dunia Teknologi Pendidikan (Grandmaster Edition)</title>
 
   <!-- Tailwind CSS CDN -->
@@ -208,6 +212,65 @@
             gain.connect(ctx.destination);
             osc.start(ctx.currentTime + i * 0.1);
             osc.stop(ctx.currentTime + i * 0.1 + 0.65);
+          });
+        } catch (_) {}
+      },
+
+      playError() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, ctx.currentTime);
+          osc.frequency.setValueAtTime(105, ctx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        } catch (_) {}
+      },
+
+      playSplash() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(420, ctx.currentTime);
+          osc.exponentialRampToValueAtTime(120, ctx.currentTime + 0.18);
+          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.22);
+        } catch (_) {}
+      },
+
+      playLevelUp() {
+        if (this.muted) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          const chord = [392.00, 493.88, 587.33, 783.99, 987.77];
+          chord.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.4);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + idx * 0.08);
+            osc.stop(ctx.currentTime + idx * 0.08 + 0.45);
           });
         } catch (_) {}
       },
@@ -2187,6 +2250,22 @@
           {/* KONTROL KANAN ATAS */}
           <div className="fixed top-3.5 right-3.5 z-20 flex items-center gap-2">
             <button
+              onClick={() => setActiveModal('radar')}
+              className="hidden md:flex px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-lg items-center gap-1.5 cursor-pointer border border-indigo-400/30"
+              title="Diagnosis Profil Kompetensi EdTech"
+            >
+              <span>📊 Radar</span>
+            </button>
+
+            <button
+              onClick={() => setActiveModal('promptStudio')}
+              className="hidden lg:flex px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-lg items-center gap-1.5 cursor-pointer border border-violet-400/30"
+              title="AI Prompt Engineering Studio"
+            >
+              <span>🤖 AI Prompt</span>
+            </button>
+
+            <button
               onClick={startTour}
               title="Mulai Tur Sinematik Otomatis"
               className="px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-extrabold text-xs shadow-lg cursor-pointer flex items-center gap-1.5"
@@ -2523,6 +2602,52 @@
               onResetProgress={handleResetAllProgress}
               onOpenFeature={(modalName) => setActiveModal(modalName)}
               onStartTour={startTour}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 18: RADAR KOMPETENSI EDTECH */}
+          {activeModal === 'radar' && (
+            <CompetencyRadarModal
+              userXp={xp}
+              islands={islands}
+              masteredCards={masteredCards}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 19: SIMULATOR DILEMA KELAS */}
+          {activeModal === 'dilemma' && (
+            <ClassroomDilemmaModal
+              onSuccess={(earnedXp) => {
+                setXp((x) => x + earnedXp);
+                setCitizens((c) => c + 120);
+                soundManager.playVictory();
+                triggerToast(`Dilema kelas berhasil dipecahkan! (+${earnedXp} XP)`);
+              }}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 20: AI PROMPT ENGINEERING STUDIO */}
+          {activeModal === 'promptStudio' && (
+            <AIPromptStudioModal
+              onClose={() => setActiveModal('none')}
+              onToast={triggerToast}
+            />
+          )}
+
+          {/* MODAL 21: GENERATOR RUBRIK ASESMEN KURIKULUM MERDEKA */}
+          {activeModal === 'rubrik' && (
+            <RubricBuilderModal
+              onClose={() => setActiveModal('none')}
+              onToast={triggerToast}
+            />
+          )}
+
+          {/* MODAL 22: DUEL KUIS KELAS 1 VS 1 */}
+          {activeModal === 'duel' && (
+            <QuizDuelModal
               onClose={() => setActiveModal('none')}
             />
           )}
@@ -4280,64 +4405,1133 @@ ${evaluation}
     // ========================================================================
     // MODAL: MENU LENGKAP & RESET DATA
     // ========================================================================
-    function MenuModal({ onResetProgress, onOpenFeature, onStartTour, onClose }) {
+    
+    // ========================================================================
+    // MODAL: RADAR KOMPETENSI EDTECH (LIVE SPIDER / RADAR CHART)
+    // ========================================================================
+    function CompetencyRadarModal({ userXp, islands, masteredCards, onClose }) {
+      // Hitung skor 6 dimensi berdasarkan progres nyata
+      const totalProsperity = islands.reduce((acc, isl) => acc + (isl.prosperity || 0), 0);
+      const visitedCount = islands.filter(isl => (isl.prosperity || 0) > 0).length;
+
+      const scores = {
+        pedagogy: Math.min(100, Math.round(45 + (userXp * 0.04) + (visitedCount * 3))),
+        ai: Math.min(100, Math.round(35 + ((islands.find(i => i.id === 'isl-ai')?.prosperity || 0) * 0.6) + (userXp * 0.02))),
+        media: Math.min(100, Math.round(50 + ((islands.find(i => i.id === 'isl-dale')?.prosperity || 0) * 0.5) + (visitedCount * 2))),
+        gamification: Math.min(100, Math.round(40 + ((islands.find(i => i.id === 'isl-gamifikasi')?.prosperity || 0) * 0.6) + (userXp * 0.03))),
+        evaluation: Math.min(100, Math.round(40 + ((islands.find(i => i.id === 'isl-kirk')?.prosperity || 0) * 0.6) + (masteredCards.length * 3))),
+        cognition: Math.min(100, Math.round(45 + (masteredCards.length * 4.5) + ((islands.find(i => i.id === 'isl-kog')?.prosperity || 0) * 0.4)))
+      };
+
+      const dimensions = [
+        { key: 'pedagogy', label: 'Pedagogi & Desain', score: scores.pedagogy, color: '#3b82f6', desc: 'Penguasaan ADDIE, Pembelajaran Berdiferensiasi, Kurikulum Merdeka' },
+        { key: 'ai', label: 'Integrasi AI & TPACK', score: scores.ai, color: '#8b5cf6', desc: 'Penerapan Model SAMR, GenAI untuk Pendidik, Prompt Engineering' },
+        { key: 'media', label: 'Kurasi & Rekayasa Media', score: scores.media, color: '#10b981', desc: 'Kerucut Dale, Model ASSURE, Efektivitas Media Multimedia' },
+        { key: 'gamification', label: 'Gamifikasi & Motivasi', score: scores.gamification, color: '#f59e0b', desc: 'Octalysis Framework, Flow State Theory, Desain Game Edukasi' },
+        { key: 'evaluation', label: 'Evaluasi & Asesmen', score: scores.evaluation, color: '#ef4444', desc: 'Taksonomi Bloom, 4 Level Kirkpatrick, Asesmen Autentik' },
+        { key: 'cognition', label: 'Teori Kognisi & Belajar', score: scores.cognition, color: '#06b6d4', desc: 'Cognitive Load Theory, Behaviorisme, Konstruktivisme' }
+      ];
+
+      // Perhitungan Titik Poligon Radar SVG
+      const size = 320;
+      const center = size / 2;
+      const radius = 110;
+      const totalAxes = dimensions.length;
+
+      const getCoordinates = (index, valuePercent) => {
+        const angle = (Math.PI * 2 / totalAxes) * index - Math.PI / 2;
+        const r = (valuePercent / 100) * radius;
+        const x = center + r * Math.cos(angle);
+        const y = center + r * Math.sin(angle);
+        return { x, y };
+      };
+
+      const polygonPoints = dimensions.map((d, i) => {
+        const pt = getCoordinates(i, d.score);
+        return `${pt.x},${pt.y}`;
+      }).join(' ');
+
+      const avgScore = Math.round(dimensions.reduce((a, b) => a + b.score, 0) / dimensions.length);
+
+      const getTier = (s) => {
+        if (s >= 85) return { title: 'Grandmaster EdTech Inovatif', badge: 'bg-emerald-500 text-white' };
+        if (s >= 70) return { title: 'Praktisi Teknologi Maju', badge: 'bg-indigo-500 text-white' };
+        if (s >= 55) return { title: 'Pengembang Pembelajaran Terampil', badge: 'bg-amber-500 text-white' };
+        return { title: 'Eksplorer Pemula Teknologi Pendidikan', badge: 'bg-slate-500 text-white' };
+      };
+
+      const tier = getTier(avgScore);
+
       return (
-        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
-              <h2 className="font-bold text-sm">Pusat Fitur EdTech World Grandmaster</h2>
+        <div role="dialog" className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center">
+                  <Icon name="Radar" className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h2 className="font-extrabold text-sm sm:text-base">Radar Kompetensi EdTech</h2>
+                  <p className="text-[11px] text-indigo-200">Profil diagnostik keahlian instruksional & teknologi pembelajaran</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* STATUS RINGKAS */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white font-black text-lg flex items-center justify-center shadow-md">
+                    {avgScore}
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-indigo-700 font-bold uppercase tracking-wider">Skor Agregat Kompetensi</div>
+                    <div className="text-sm font-extrabold text-slate-900">{tier.title}</div>
+                  </div>
+                </div>
+                <span className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs ${tier.badge}`}>
+                  Tingkat: {avgScore >= 80 ? 'Master' : avgScore >= 60 ? 'Menengah' : 'Dasar'}
+                </span>
+              </div>
+
+              {/* RADAR SVG VISUALIZATION */}
+              <div className="flex flex-col items-center justify-center bg-slate-900 rounded-2xl p-4 shadow-inner relative">
+                <svg width={size} height={size} className="overflow-visible max-w-full">
+                  {/* Lingkaran Level */}
+                  {[25, 50, 75, 100].map((lvl) => (
+                    <circle
+                      key={lvl}
+                      cx={center}
+                      cy={center}
+                      r={(lvl / 100) * radius}
+                      fill="none"
+                      stroke="#334155"
+                      strokeWidth="1"
+                      strokeDasharray={lvl === 100 ? 'none' : '3 3'}
+                    />
+                  ))}
+                  {/* Garis Sumbu Aksis */}
+                  {dimensions.map((_, i) => {
+                    const pt = getCoordinates(i, 100);
+                    return (
+                      <line
+                        key={i}
+                        x1={center}
+                        y1={center}
+                        x2={pt.x}
+                        y2={pt.y}
+                        stroke="#475569"
+                        strokeWidth="1"
+                      />
+                    );
+                  })}
+                  {/* Area Poligon Real-time */}
+                  <polygon
+                    points={polygonPoints}
+                    fill="rgba(99, 102, 241, 0.45)"
+                    stroke="#818cf8"
+                    strokeWidth="2.5"
+                  />
+                  {/* Titik Simpul */}
+                  {dimensions.map((d, i) => {
+                    const pt = getCoordinates(i, d.score);
+                    return (
+                      <circle
+                        key={i}
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="4.5"
+                        fill={d.color}
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                      />
+                    );
+                  })}
+                  {/* Label Teks Sumbu */}
+                  {dimensions.map((d, i) => {
+                    const pt = getCoordinates(i, 120);
+                    return (
+                      <text
+                        key={i}
+                        x={pt.x}
+                        y={pt.y}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize="10"
+                        fontWeight="700"
+                        fill="#cbd5e1"
+                      >
+                        {d.label.split(' ')[0]} ({d.score}%)
+                      </text>
+                    );
+                  })}
+                </svg>
+                <p className="text-[10px] text-slate-400 mt-2 text-center">
+                  *Skor diperbarui secara dinamis saat Anda menyelesaikan Kuis, Bloom, ASSURE, Flashcard & Eksplorasi Kawasan.
+                </p>
+              </div>
+
+              {/* RINCIAN 6 DIMENSI */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {dimensions.map((dim) => (
+                  <div key={dim.key} className="p-3.5 rounded-2xl border border-slate-200 bg-white shadow-xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-800">{dim.label}</span>
+                      <span className="text-xs font-black" style={{ color: dim.color }}>{dim.score}%</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden mb-2">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${dim.score}%`, backgroundColor: dim.color }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">{dim.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 cursor-pointer shadow-md"
+              >
+                Tutup Diagnosis
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: SIMULATOR DILEMA KELAS (BRANCHING SCENARIO-BASED LEARNING)
+    // ========================================================================
+    function ClassroomDilemmaModal({ onSuccess, onClose }) {
+      const dilemmas = [
+        {
+          id: 'ai-plagiarism',
+          tag: 'Inovasi AI & Etika',
+          title: 'Krisis Penugasan AI: Siswa Mengumpulkan Esai Sintetis 100%',
+          context: 'Saat memeriksa tugas akhir esai kajian model pembelajaran, Anda menemukan 70% siswa mengumpulkan teks hasil generasi utuh ChatGPT tanpa sitasi maupun refleksi kritis.',
+          question: 'Bagaimana tindakan pedagogis terbaik sesuai kerangka TPACK & Model SAMR?',
+          options: [
+            {
+              id: 'opt1',
+              label: 'A. Larang keras seluruh penggunaan AI dan beri nilai 0 untuk siswa yang terdeteksi AI.',
+              score: 30,
+              badge: 'Kurang Tepat (Defensif)',
+              badgeClass: 'bg-rose-100 text-rose-800',
+              feedback: 'Pendekatan pelarangan total mengabaikan kenyataan bahwa AI telah menjadi instrumen esensial. Ini membatasi literasi digital kritis siswa dan memicu resistensi sembunyi-sembunyi.'
+            },
+            {
+              id: 'opt2',
+              label: 'B. Ubah format tugas menjadi Redefinition (SAMR): Siswa menguji validitas argumen AI, menyertakan prompt, dan melakukan debat lisan reflektif.',
+              score: 100,
+              badge: 'Solusi Terbaik (Transformasi TPACK)',
+              badgeClass: 'bg-emerald-100 text-emerald-800',
+              feedback: 'Luar biasa! Ini menggeser tugas ke tingkat Higher Order Thinking Skills (HOTS). AI digunakan sebagai mitra kritis (sparring partner), bukan pengganti kognisi manusia.'
+            },
+            {
+              id: 'opt3',
+              label: 'C. Abaikan saja selama esai terbaca rapi dan memenuhi jumlah halaman minimum.',
+              score: 20,
+              badge: 'Keliru (Pasif)',
+              badgeClass: 'bg-amber-100 text-amber-800',
+              feedback: 'Sikap abai menurunkan integritas akademik dan membiarkan pembentukan ilusi pemahaman (hanya copy-paste tanpa internalisasi konsep).'
+            }
+          ]
+        },
+        {
+          id: 'low-bandwidth',
+          tag: 'Inklusivitas & Media',
+          title: 'Kendala Bandwidth di Daerah 3T: Video Interaktif Gagal Dimuat',
+          context: 'Anda merancang video interaktif berbasis Cloud untuk pembelajaran biologi, namun di daerah terpencil koneksi sering terputus sehingga mayoritas siswa frustrasi.',
+          question: 'Strategi adaptasi instruksional apa yang paling selaras dengan Model ASSURE & Kerucut Dale?',
+          options: [
+            {
+              id: 'opt1',
+              label: 'A. Terapkan strategi Asinkronus Rendah Bandwidth: Berikan panduan audio podcast lokal terkompresi, infografis PDF offline, dan sesi hands-on lingkungan nyata.',
+              score: 100,
+              badge: 'Solusi Terbaik (ASSURE Inklusif)',
+              badgeClass: 'bg-emerald-100 text-emerald-800',
+              feedback: 'Tepat sekali! Tahap S (Select Media) dalam ASSURE menuntut media disesuaikan dengan realitas karakteristik lingkungan belajar. Kerucut Dale membuktikan pengalaman langsung di alam justru lebih konkret daripada video pasif.'
+            },
+            {
+              id: 'opt2',
+              label: 'B. Paksa siswa mencari sinyal di bukit terdekat demi menonton video beresolusi HD.',
+              score: 10,
+              badge: 'Tidak Manusiawi',
+              badgeClass: 'bg-rose-100 text-rose-800',
+              feedback: 'Langkah ini membahayakan keselamatan siswa dan memperlebar jurang ketimpangan digital (digital divide).'
+            },
+            {
+              id: 'opt3',
+              label: 'C. Batalkan materi dan ganti dengan tugas meringkas buku teks 20 halaman.',
+              score: 40,
+              badge: 'Kurang Menginspirasi',
+              badgeClass: 'bg-amber-100 text-amber-800',
+              feedback: 'Meskipun realistis, kembali ke hafalan konvensional tanpa panduan inkuiri menekan motivasi belajar siswa.'
+            }
+          ]
+        },
+        {
+          id: 'zoom-fatigue',
+          tag: 'Motivasi & Gamifikasi',
+          title: 'Sindrom Kamera Mati: Siswa Pasif & Jenuh di Kelas Daring',
+          context: 'Di sesi webinar zoom 90 menit, seluruh siswa mematikan kamera dan tidak ada yang merespons pertanyaan pembuka pengajar. Kelas terasa seperti ruang hampa.',
+          question: 'Bagaimana membangkitkan keterlibatan emosional & Flow State menurut Octalysis Framework?',
+          options: [
+            {
+              id: 'opt1',
+              label: 'A. Wajibkan on-camera dengan sanksi pengurangan nilai bagi yang off-cam.',
+              score: 35,
+              badge: 'Black Hat Gamification (Terpaksa)',
+              badgeClass: 'bg-amber-100 text-amber-800',
+              feedback: 'Mengandalkan rasa takut (Drive 8: Loss & Avoidance) hanya menciptakan kepatuhan semu tanpa keterlibatan kognitif yang tulus.'
+            },
+            {
+              id: 'opt2',
+              label: 'B. Restrukturisasi sesi: Bagi menjadi modul 15 menit dengan polling interaktif cepat, tantangan breakout room berpasangan, dan papan papan reaksi emoji.',
+              score: 100,
+              badge: 'Solusi Terbaik (Flow State & ARCS)',
+              badgeClass: 'bg-emerald-100 text-emerald-800',
+              feedback: 'Sempurna! Memangkas beban kognitif extraneous dan memicu Social Influence & Relatedness (Drive 5) mengembalikan gairah belajar interaktif.'
+            }
+          ]
+        }
+      ];
+
+      const [curIdx, setCurIdx] = useState(0);
+      const [selectedOpt, setSelectedOpt] = useState(null);
+      const [answered, setAnswered] = useState(false);
+      const [completed, setCompleted] = useState(false);
+
+      const dilemma = dilemmas[curIdx];
+
+      const handleChoose = (opt) => {
+        if (answered) return;
+        setSelectedOpt(opt);
+        setAnswered(true);
+        if (opt.score >= 80) {
+          soundManager.playCoin();
+        } else {
+          soundManager.playError();
+        }
+      };
+
+      const handleNext = () => {
+        if (curIdx < dilemmas.length - 1) {
+          setCurIdx(curIdx + 1);
+          setSelectedOpt(null);
+          setAnswered(false);
+        } else {
+          setCompleted(true);
+          onSuccess(120);
+        }
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-600 to-rose-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Icon name="AlertTriangle" className="w-5 h-5 text-amber-200" />
+                <h2 className="font-extrabold text-sm sm:text-base">Simulator Dilema Kelas EdTech</h2>
+              </div>
               <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
                 <Icon name="X" className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5 space-y-2.5 text-xs">
-              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-900 text-[11px] font-semibold flex items-center gap-1.5">
-                <span>💾 Data Tersimpan Otomatis di Browser (LocalStorage)</span>
+
+            <div className="p-6 overflow-y-auto space-y-5">
+              {!completed ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[11px]">
+                      {dilemma.tag}
+                    </span>
+                    <span className="text-xs text-slate-400 font-semibold">
+                      Kasus {curIdx + 1} dari {dilemmas.length}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="font-black text-base text-slate-900 mb-2">{dilemma.title}</h3>
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
+                      {dilemma.context}
+                    </div>
+                  </div>
+
+                  <p className="font-bold text-xs text-slate-800">{dilemma.question}</p>
+
+                  <div className="space-y-2.5">
+                    {dilemma.options.map((opt) => {
+                      const isChosen = selectedOpt?.id === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          disabled={answered}
+                          onClick={() => handleChoose(opt)}
+                          className={`w-full p-4 rounded-2xl border text-left text-xs transition-all cursor-pointer ${
+                            isChosen
+                              ? opt.score >= 80
+                                ? 'bg-emerald-50 border-emerald-400 text-emerald-950 shadow-sm'
+                                : 'bg-rose-50 border-rose-400 text-rose-950 shadow-sm'
+                              : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
+                          }`}
+                        >
+                          <div className="font-semibold leading-relaxed">{opt.label}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {answered && selectedOpt && (
+                    <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${selectedOpt.badgeClass}`}>
+                          {selectedOpt.badge}
+                        </span>
+                        <span className="text-xs font-black text-amber-400">Skor: {selectedOpt.score}/100</span>
+                      </div>
+                      <p className="text-xs text-slate-200 leading-relaxed">{selectedOpt.feedback}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8 space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <Icon name="Award" className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900">Seluruh Skenario Terpecahkan!</h3>
+                  <p className="text-xs text-slate-600 max-w-sm mx-auto">
+                    Anda berhasil memecahkan dilema teknologi pendidikan dengan pertimbangan pedagogis komprehensif. (+120 XP)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-slate-600 font-bold text-xs hover:bg-slate-200 cursor-pointer"
+              >
+                Tutup
+              </button>
+              {!completed ? (
+                answered && (
+                  <button
+                    onClick={handleNext}
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 cursor-pointer shadow-md"
+                  >
+                    {curIdx < dilemmas.length - 1 ? 'Kasus Selanjutnya ›' : 'Selesaikan Simulasi'}
+                  </button>
+                )
+              ) : (
+                <button
+                  onClick={onClose}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 cursor-pointer shadow-md"
+                >
+                  Selesai
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: AI PROMPT ENGINEERING STUDIO UNTUK PENDIDIK
+    // ========================================================================
+    function AIPromptStudioModal({ onClose, onToast }) {
+      const [framework, setFramework] = useState('RTF');
+      const [subject, setSubject] = useState('Teknologi Pendidikan / Desain Pembelajaran');
+      const [grade, setGrade] = useState('Perguruan Tinggi (S1)');
+      const [topic, setTopic] = useState('Model Pembelajaran Flipped Classroom dengan Integrasi GenAI');
+      const [model, setModel] = useState('Project-Based Learning (PBL)');
+      const [bloomLevel, setBloomLevel] = useState('C5 - Mengevaluasi');
+      const [outputType, setOutputType] = useState('rubrik');
+      const [copied, setCopied] = useState(false);
+
+      const generatePrompt = () => {
+        if (framework === 'RTF') {
+          return `[ROLE]
+Anda adalah seorang Ahli Desain Instruksional & Kurikulum Teknologi Pendidikan senior.
+
+[TASK]
+Rancanglah ${outputType === 'rubrik' ? 'Rubrik Penilaian Autentik Holistik & Analitik' : outputType === 'lkpd' ? 'Lembar Kerja Peserta Didik (LKPD) Inovatif' : 'Rencana Skenario Kasus Berdiferensiasi'} untuk mata pelajaran "${subject}" jenjang "${grade}".
+Topik spesifik: "${topic}".
+Gunakan pendekatan model pembelajaran: "${model}".
+Pastikan aktivitas menargetkan Taksonomi Bloom level: "${bloomLevel}".
+
+[FORMAT]
+Sajikan output dalam:
+1. Tujuan Pembelajaran terukur (ABCD: Audience, Behavior, Condition, Degree).
+2. Tabel terstruktur dengan deskriptor kinerja yang jelas (Skala: Perlu Bimbingan, Cukup, Baik, Sangat Mahir).
+3. Pertanyaan refleksi metakognitif bagi peserta didik.
+4. Tips adaptasi bagi peserta didik berkebutuhan khusus atau variasi kecepatan belajar.`;
+        } else if (framework === 'CARE') {
+          return `[CONTEXT]
+Di kelas ${grade} pada materi ${subject}, peserta didik sedang mempelajari "${topic}" menggunakan sintaks ${model}.
+
+[ACTION]
+Susunlah ${outputType === 'rubrik' ? 'instrumen penilaian' : outputType === 'lkpd' ? 'lembar kerja inkuiri' : 'pertanyaan pemantik kritis'} dengan penekanan pada kemampuan ${bloomLevel}.
+
+[RESULT]
+Hasil yang diharapkan adalah dokumen terstruktur yang siap pakai, memicu kemandirian belajar (self-regulated learning), dan mengintegrasikan etika penggunaan teknologi.
+
+[EXAMPLE]
+Berikan contoh konkret minimal 1 studi kasus kontekstual Indonesia serta rubrik penilaian performa 4 skala.`;
+        } else {
+          return `[CREATE FRAMEWORK]
+- Character: Dosen Ahli Kurikulum Merdeka & Instructional Designer.
+- Request: Buat rancangan pembelajaran inovatif topik "${topic}" untuk jenjang ${grade}.
+- Examples: Sertakan analogi dunia nyata dan variasi tugas multimedia.
+- Adjustments: Terapkan prinsip Universal Design for Learning (UDL).
+- Type: ${outputType.toUpperCase()} siap cetak.
+- Extras: Sertakan kunci refleksi pengajar.`;
+        }
+      };
+
+      const promptText = generatePrompt();
+
+      const handleCopy = () => {
+        navigator.clipboard.writeText(promptText);
+        setCopied(true);
+        soundManager.playCoin();
+        onToast('Prompt AI berhasil disalin ke clipboard!');
+        setTimeout(() => setCopied(false), 2500);
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-violet-900 to-indigo-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-400/20 border border-violet-400/40 flex items-center justify-center">
+                  <Icon name="Sparkles" className="w-5 h-5 text-violet-300" />
+                </div>
+                <div>
+                  <h2 className="font-extrabold text-sm sm:text-base">AI Prompt Engineering Studio untuk Pendidik</h2>
+                  <p className="text-[11px] text-violet-200">Generator cetak-biru prompt berkualitas tinggi untuk ChatGPT, Claude & Gemini</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5 text-xs">
+              {/* FRAMEWORK SELECTOR */}
+              <div>
+                <label className="font-bold text-slate-800 block mb-1.5">Pilih Framework Prompt Pedagogis:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'RTF', name: 'RTF Framework', sub: 'Role - Task - Format' },
+                    { id: 'CARE', name: 'CARE Framework', sub: 'Context - Action - Result - Example' },
+                    { id: 'CREATE', name: 'CREATE Framework', sub: 'Character - Request - Extras' }
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setFramework(f.id)}
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                        framework === f.id
+                          ? 'border-violet-600 bg-violet-50 text-violet-950 font-bold shadow-xs'
+                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="font-extrabold text-xs">{f.name}</div>
+                      <div className="text-[10px] text-slate-400 font-normal">{f.sub}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  onClick={() => { onClose(); onStartTour(); }}
-                  className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100 font-bold text-left cursor-pointer text-emerald-900"
-                >
-                  🎬 Tur Sinematik
-                </button>
-                <button
-                  onClick={() => { onClose(); onOpenFeature('bloom'); }}
-                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
-                >
-                  🏛️ Piramida Bloom
-                </button>
-                <button
-                  onClick={() => { onClose(); onOpenFeature('assureMatcher'); }}
-                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
-                >
-                  🎯 Simulasi ASSURE
-                </button>
-                <button
-                  onClick={() => { onClose(); onOpenFeature('flashcards'); }}
-                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
-                >
-                  🃏 Flashcards Teori
-                </button>
-                <button
-                  onClick={() => { onClose(); onOpenFeature('sorter'); }}
-                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
-                >
-                  ⚙️ Pemilah CLT
-                </button>
-                <button
-                  onClick={() => { onClose(); onOpenFeature('certificate'); }}
-                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
-                >
-                  📜 Cetak Sertifikat
-                </button>
+              {/* FORM FIELDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Mata Pelajaran / Bidang Studi:</label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:border-violet-500 font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Jenjang Pendidikan:</label>
+                  <select
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:border-violet-500 font-medium bg-white"
+                  >
+                    <option value="SD (Fase A-C)">SD / Madrasah Ibtidaiyah (Fase A-C)</option>
+                    <option value="SMP (Fase D)">SMP / MTs (Fase D)</option>
+                    <option value="SMA/SMK (Fase E-F)">SMA / SMK (Fase E-F)</option>
+                    <option value="Perguruan Tinggi (S1)">Perguruan Tinggi (S1)</option>
+                    <option value="Pascasarjana (S2/S3)">Pascasarjana (S2/S3)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Model Pembelajaran:</label>
+                  <select
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:border-violet-500 font-medium bg-white"
+                  >
+                    <option value="Project-Based Learning (PBL)">Project-Based Learning (PBL)</option>
+                    <option value="Problem-Based Learning">Problem-Based Learning</option>
+                    <option value="Flipped Classroom & Blended">Flipped Classroom & Blended</option>
+                    <option value="Inquiry-Based Learning">Inquiry-Based Learning</option>
+                    <option value="Discovery Learning">Discovery Learning</option>
+                    <option value="Gamified Mastery Learning">Gamified Mastery Learning</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Level Taksonomi Bloom:</label>
+                  <select
+                    value={bloomLevel}
+                    onChange={(e) => setBloomLevel(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:border-violet-500 font-medium bg-white"
+                  >
+                    <option value="C3 - Menerapkan (Applying)">C3 - Menerapkan (Applying)</option>
+                    <option value="C4 - Menganalisis (Analyzing)">C4 - Menganalisis (Analyzing)</option>
+                    <option value="C5 - Mengevaluasi (Evaluating)">C5 - Mengevaluasi (Evaluating)</option>
+                    <option value="C6 - Mencipta (Creating)">C6 - Mencipta (Creating)</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="pt-3 border-t">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Topik Spesifik Pembelajaran:</label>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:border-violet-500 font-medium"
+                />
+              </div>
+
+              {/* OUTPUT PROMPT TEXTAREA */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-slate-800">Cetak Biru Prompt yang Dihasilkan:</label>
+                  <button
+                    onClick={handleCopy}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                      copied
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-violet-600 hover:bg-violet-700 text-white'
+                    }`}
+                  >
+                    <Icon name={copied ? 'Check' : 'Copy'} className="w-3.5 h-3.5" />
+                    <span>{copied ? 'Tersalin!' : 'Salin Prompt'}</span>
+                  </button>
+                </div>
+                <textarea
+                  readOnly
+                  rows={8}
+                  value={promptText}
+                  className="w-full p-4 rounded-2xl bg-slate-900 text-slate-200 font-mono text-xs leading-relaxed border border-slate-700 focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+              <span className="text-[11px] text-slate-500">
+                💡 Pastekan hasil prompt ini langsung ke ChatGPT, Gemini, atau Claude.
+              </span>
+              <button
+                onClick={onClose}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 cursor-pointer shadow-md"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: GENERATOR RUBRIK ASESMEN KURIKULUM MERDEKA (RUBRIC BUILDER)
+    // ========================================================================
+    function RubricBuilderModal({ onClose, onToast }) {
+      const templates = [
+        {
+          id: 'p5',
+          title: 'Asesmen Proyek Penguatan Profil Pelajar Pancasila (P5)',
+          rows: [
+            { criterion: 'Bernalar Kritis: Mengidentifikasi & Menganalisis Masalah', bimbingan: 'Memerlukan bimbingan penuh untuk merumuskan masalah sederhana.', cukup: 'Mampu menyebutkan masalah namun analisis sebab-akibat masih belum runtut.', baik: 'Menganalisis masalah dengan data pendukung dan argumen yang relevan.', mahir: 'Kritis mengevaluasi asumsi, memvalidasi data kompleks, dan merumuskan solusi inovatif.' },
+            { criterion: 'Kreativitas: Menghasilkan Gagasan & Produk Orisinal', bimbingan: 'Meniru persis contoh tanpa melakukan modifikasi atau variasi.', cukup: 'Memodifikasi karya yang sudah ada dengan perubahan minor.', baik: 'Menghasilkan gagasan orisinal yang aplikatif dan bermanfaat bagi sasaran.', mahir: 'Menciptakan karya inovatif berdaya guna tinggi yang melampaui ekspektasi proyek.' },
+            { criterion: 'Gotong Royong: Kolaborasi Tim & Pembagian Peran', bimbingan: 'Pasif dalam kelompok dan enggan menerima pembagian tugas.', cukup: 'Menjalankan tugas saat diingatkan oleh rekan kelompok.', baik: 'Aktif berpartisipasi dan menyelesaikan tanggung jawab tepat waktu.', mahir: 'Memimpin sinergi tim secara inklusif dan memediasi perbedaan pendapat secara konstruktif.' }
+          ]
+        },
+        {
+          id: 'multimedia',
+          title: 'Asesmen Karya Media Pembelajaran Digital',
+          rows: [
+            { criterion: 'Kesesuaian Pedagogis & Teori Belajar', bimbingan: 'Materi tidak sesuai tujuan dan melanggar prinsip Cognitive Load.', cukup: 'Materi mencakup topik dasar namun alur kognitif masih melompat-lompat.', baik: 'Struktur logis sesuai kaidah ADDIE dengan contoh kontekstual.', mahir: 'Menyajikan scaffolding pedagogis adaptif dengan interaktivitas optimal.' },
+            { criterion: 'Kualitas Visual, Audio & Antarmuka (UI/UX)', bimbingan: 'Tata letak berantakan, audio bising, dan teks sulit dibaca.', cukup: 'Tata letak standar namun kontras warna atau sinkronisasi audio kurang harmonis.', baik: 'Desain estetis, navigasi lancar, tipografi dan audio jernih.', mahir: 'Estetika profesional sekelas industri dengan aksesibilitas ramah disabilitas.' }
+          ]
+        }
+      ];
+
+      const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
+      const [title, setTitle] = useState(selectedTemplate.title);
+      const [rows, setRows] = useState(selectedTemplate.rows);
+
+      const handleSelectTpl = (tpl) => {
+        setSelectedTemplate(tpl);
+        setTitle(tpl.title);
+        setRows(tpl.rows);
+      };
+
+      const handleExportCSV = () => {
+        let csv = 'Kriteria,Perlu Bimbingan (1),Cukup (2),Baik (3),Sangat Mahir (4)\n';
+        rows.forEach(r => {
+          csv += `"${r.criterion}","${r.bimbingan}","${r.cukup}","${r.baik}","${r.mahir}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Rubrik_${title.replace(/\s+/g, '_')}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        soundManager.playCoin();
+        onToast('File CSV Rubrik berhasil diunduh (Kompatibel Excel)!');
+      };
+
+      const handlePrint = () => {
+        window.print();
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-emerald-800 to-teal-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-400/20 border border-emerald-400/40 flex items-center justify-center">
+                  <Icon name="FileCheck" className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <h2 className="font-extrabold text-sm sm:text-base">Generator Rubrik Asesmen Kurikulum Merdeka</h2>
+                  <p className="text-[11px] text-emerald-200">Format 4 skala capaian kompetensi autentik siap cetak & ekspor</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5 text-xs">
+              {/* PILIH TEMPLATE */}
+              <div>
+                <label className="font-bold text-slate-800 block mb-1.5">Pilih Templat Penilaian:</label>
+                <div className="flex flex-wrap gap-2">
+                  {templates.map((tpl) => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => handleSelectTpl(tpl)}
+                      className={`px-3.5 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                        selectedTemplate.id === tpl.id
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 shadow-xs'
+                          : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      {tpl.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* JUDUL RUBRIK */}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Judul Instrumen Asesmen:</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-bold text-sm text-slate-900"
+                />
+              </div>
+
+              {/* TABEL MATRIKS RUBRIK */}
+              <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-900 text-white font-extrabold text-[11px]">
+                      <th className="p-3 w-1/4">Kriteria Penilaian</th>
+                      <th className="p-3 w-[18%] bg-rose-950/80">Perlu Bimbingan (1)</th>
+                      <th className="p-3 w-[18%] bg-amber-950/80">Cukup (2)</th>
+                      <th className="p-3 w-[18%] bg-blue-950/80">Baik (3)</th>
+                      <th className="p-3 w-[21%] bg-emerald-950/80">Sangat Mahir (4)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {rows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/80">
+                        <td className="p-3 font-bold text-slate-900 align-top bg-slate-50/50">{row.criterion}</td>
+                        <td className="p-3 text-slate-600 align-top leading-relaxed text-[11px]">{row.bimbingan}</td>
+                        <td className="p-3 text-slate-600 align-top leading-relaxed text-[11px]">{row.cukup}</td>
+                        <td className="p-3 text-slate-600 align-top leading-relaxed text-[11px]">{row.baik}</td>
+                        <td className="p-3 text-slate-700 font-medium align-top leading-relaxed text-[11px] bg-emerald-50/30">{row.mahir}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExportCSV}
+                  className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs hover:bg-emerald-100 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Icon name="Download" className="w-3.5 h-3.5" />
+                  <span>Ekspor Excel (.csv)</span>
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Icon name="Printer" className="w-3.5 h-3.5" />
+                  <span>Cetak / PDF A4</span>
+                </button>
+              </div>
+              <button
+                onClick={onClose}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 cursor-pointer shadow-md"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: DUEL KUIS KELAS (1 VS 1 LOCAL MULTIPLAYER BATTLE)
+    // ========================================================================
+    function QuizDuelModal({ onClose }) {
+      const duelQuestions = [
+        { q: 'Model desain instruksional dengan fase Analysis, Design, Development, Implementation, dan Evaluation adalah?', opts: ['ADDIE', 'ASSURE', 'ARCS', 'SAMR'], ans: 0 },
+        { q: 'Tingkatan tertinggi pada revisi Taksonomi Bloom (Anderson & Krathwohl) adalah?', opts: ['Menganalisis', 'Mengevaluasi', 'Mencipta', 'Memahami'], ans: 2 },
+        { q: 'Dalam Kerucut Pengalaman Dale, pengalaman yang memberikan retensi paling tinggi adalah?', opts: ['Membaca Teks', 'Mendengar Audio', 'Menonton Video', 'Melakukan Pengalaman Langsung'], ans: 3 },
+        { q: 'Model integrasi teknologi yang terdiri dari Substitution, Augmentation, Modification, dan Redefinition adalah?', opts: ['TPACK', 'SAMR', 'ADDIE', 'Konektivisme'], ans: 1 },
+        { q: 'Beban kognitif yang timbul akibat desain materi atau antarmuka yang membingungkan disebut?', opts: ['Intrinsic Load', 'Extraneous Load', 'Germane Load', 'Sensory Load'], ans: 1 },
+        { q: 'Evaluasi hasil belajar level ke-4 menurut model Kirkpatrick berfokus pada?', opts: ['Reaksi Pembelajar', 'Hasil / Dampak Organisasi', 'Perubahan Perilaku', 'Peningkatan Pengetahuan'], ans: 1 }
+      ];
+
+      const [curQIdx, setCurQIdx] = useState(0);
+      const [p1Score, setP1Score] = useState(0);
+      const [p2Score, setP2Score] = useState(0);
+      const [roundWinner, setRoundWinner] = useState(null);
+      const [battleOver, setBattleOver] = useState(false);
+
+      const curQ = duelQuestions[curQIdx];
+
+      const handleAnswer = (player, optIdx) => {
+        if (roundWinner || battleOver) return;
+        const isCorrect = optIdx === curQ.ans;
+
+        if (player === 1) {
+          if (isCorrect) {
+            setP1Score((s) => s + 100);
+            setRoundWinner('Player 1 (Biru) Benar! (+100)');
+            soundManager.playCoin();
+          } else {
+            setP1Score((s) => Math.max(0, s - 30));
+            setRoundWinner('Player 1 Salah! (-30)');
+            soundManager.playError();
+          }
+        } else {
+          if (isCorrect) {
+            setP2Score((s) => s + 100);
+            setRoundWinner('Player 2 (Merah) Benar! (+100)');
+            soundManager.playCoin();
+          } else {
+            setP2Score((s) => Math.max(0, s - 30));
+            setRoundWinner('Player 2 Salah! (-30)');
+            soundManager.playError();
+          }
+        }
+
+        setTimeout(() => {
+          if (curQIdx < duelQuestions.length - 1) {
+            setCurQIdx((i) => i + 1);
+            setRoundWinner(null);
+          } else {
+            setBattleOver(true);
+            soundManager.playVictory();
+          }
+        }, 1500);
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-900 via-slate-900 to-rose-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                  <Icon name="Flame" className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h2 className="font-extrabold text-sm sm:text-base">Mode Duel Kuis EdTech (1 vs 1 Battle)</h2>
+                  <p className="text-[11px] text-slate-300">Adu cepat menjawab teori teknologi pendidikan dalam 1 layar</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* PAPAN SKOR 1 VS 1 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-blue-50 border-2 border-blue-300 text-center">
+                  <div className="text-xs font-bold text-blue-700 uppercase tracking-wider">Player 1 (Kiri)</div>
+                  <div className="text-3xl font-black text-blue-950 mt-1">{p1Score}</div>
+                  <div className="text-[10px] text-blue-600 mt-1">Pilih Opsi Biru</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-center">
+                  <div className="text-xs font-bold text-rose-700 uppercase tracking-wider">Player 2 (Kanan)</div>
+                  <div className="text-3xl font-black text-rose-950 mt-1">{p2Score}</div>
+                  <div className="text-[10px] text-rose-600 mt-1">Pilih Opsi Merah</div>
+                </div>
+              </div>
+
+              {!battleOver ? (
+                <>
+                  {/* KARTU PERTANYAAN */}
+                  <div className="p-5 rounded-2xl bg-slate-900 text-white text-center space-y-2">
+                    <span className="px-3 py-1 rounded-full bg-slate-800 text-amber-400 font-bold text-[11px]">
+                      Ronde {curQIdx + 1} dari {duelQuestions.length}
+                    </span>
+                    <h3 className="font-black text-sm sm:text-base leading-snug">{curQ.q}</h3>
+                    {roundWinner && (
+                      <div className="text-xs font-bold text-amber-300 animate-pulse pt-1">
+                        {roundWinner}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* KONTROL PILIHAN SPLIT SCREEN */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* PLAYER 1 CONTROLS */}
+                    <div className="space-y-2">
+                      <div className="text-center font-bold text-xs text-blue-800 pb-1">Tombol Player 1</div>
+                      {curQ.opts.map((opt, i) => (
+                        <button
+                          key={i}
+                          disabled={!!roundWinner}
+                          onClick={() => handleAnswer(1, i)}
+                          className="w-full p-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-xs text-left cursor-pointer transition-all shadow-xs"
+                        >
+                          {String.fromCharCode(65 + i)}. {opt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* PLAYER 2 CONTROLS */}
+                    <div className="space-y-2">
+                      <div className="text-center font-bold text-xs text-rose-800 pb-1">Tombol Player 2</div>
+                      {curQ.opts.map((opt, i) => (
+                        <button
+                          key={i}
+                          disabled={!!roundWinner}
+                          onClick={() => handleAnswer(2, i)}
+                          className="w-full p-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-bold text-xs text-left cursor-pointer transition-all shadow-xs"
+                        >
+                          {String.fromCharCode(65 + i)}. {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                    <Icon name="Trophy" className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900">
+                    {p1Score > p2Score ? '🏆 Player 1 Menang Mutlak!' : p2Score > p1Score ? '🏆 Player 2 Menang Mutlak!' : '🤝 Pertarungan Berakhir Seri!'}
+                  </h3>
+                  <p className="text-xs text-slate-600">
+                    Skor Akhir: Player 1 ({p1Score} Poin) — Player 2 ({p2Score} Poin)
+                  </p>
+                  <button
+                    onClick={() => {
+                      setCurQIdx(0);
+                      setP1Score(0);
+                      setP2Score(0);
+                      setRoundWinner(null);
+                      setBattleOver(false);
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 cursor-pointer"
+                  >
+                    Tanding Ulang ↺
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 cursor-pointer shadow-md"
+              >
+                Keluar Arena Duel
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: PUSAT MENU & HUB FITUR LENGKAP EDTECH WORLD GRANDMASTER
+    // ========================================================================
+    function MenuModal({ onResetProgress, onOpenFeature, onStartTour, onClose }) {
+      return (
+        <div role="dialog" className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[92vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Icon name="Compass" className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h2 className="font-extrabold text-sm sm:text-base">Pusat Fitur EdTech World Grandmaster</h2>
+                  <p className="text-[10px] text-slate-300">Akses seluruh simulator, generator pedagogis & mini-game</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-4 text-xs">
+              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-900 text-[11px] font-semibold flex items-center gap-1.5 border border-emerald-200">
+                <span>💾 Auto-Save Cloud Lokal Aktif (localStorage)</span>
+              </div>
+
+              {/* KATEGORI 1: ALAT & GENERATOR GURU */}
+              <div>
+                <h3 className="font-bold text-[11px] uppercase tracking-wider text-slate-400 mb-2">🛠️ Alat & Generator Pedagogis</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('radar'); }}
+                    className="p-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 font-bold text-left cursor-pointer text-indigo-950"
+                  >
+                    📊 Radar Kompetensi
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('promptStudio'); }}
+                    className="p-3 rounded-2xl border border-violet-200 bg-violet-50/50 hover:bg-violet-100 font-bold text-left cursor-pointer text-violet-950"
+                  >
+                    🤖 AI Prompt Studio
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('rubrik'); }}
+                    className="p-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 font-bold text-left cursor-pointer text-emerald-950"
+                  >
+                    📋 Generator Rubrik P5
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('wizard'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    📝 Modul Ajar Wizard
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('certificate'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    📜 Cetak Sertifikat
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('paspor'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    🪪 Paspor & ID Digital
+                  </button>
+                </div>
+              </div>
+
+              {/* KATEGORI 2: SIMULATOR & STUDI KASUS */}
+              <div>
+                <h3 className="font-bold text-[11px] uppercase tracking-wider text-slate-400 mb-2">🎭 Simulator & Studi Kasus</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('dilemma'); }}
+                    className="p-3 rounded-2xl border border-amber-200 bg-amber-50/50 hover:bg-amber-100 font-bold text-left cursor-pointer text-amber-950"
+                  >
+                    🎭 Simulator Dilema Kelas
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('assureMatcher'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    🎯 Simulasi ASSURE
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('sorter'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    ⚙️ Pemilah Beban CLT
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('bloom'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    🏛️ Piramida Bloom
+                  </button>
+                </div>
+              </div>
+
+              {/* KATEGORI 3: TANTANGAN & KOMUNITAS */}
+              <div>
+                <h3 className="font-bold text-[11px] uppercase tracking-wider text-slate-400 mb-2">⚔️ Tantangan & Komunitas</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('duel'); }}
+                    className="p-3 rounded-2xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 font-bold text-left cursor-pointer text-rose-950"
+                  >
+                    ⚔️ Duel Kuis 1 vs 1
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('flashcards'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    🃏 Flashcards Teori
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onStartTour(); }}
+                    className="p-3 rounded-2xl border border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100 font-bold text-left cursor-pointer text-emerald-900"
+                  >
+                    🎬 Tur Sinematik
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenFeature('alun'); }}
+                    className="p-3 rounded-2xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                  >
+                    👥 Alun-Alun Komunitas
+                  </button>
+                </div>
+              </div>
+
+              {/* RESET DATA */}
+              <div className="pt-3 border-t border-slate-200">
                 <button
                   onClick={onResetProgress}
-                  className="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs cursor-pointer flex items-center justify-center gap-1.5 border border-rose-200"
                 >
                   <Icon name="RefreshCw" className="w-3.5 h-3.5 text-rose-600" />
                   <span>Reset Seluruh Data & Progres</span>
@@ -4351,6 +5545,14 @@ ${evaluation}
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
+  
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
   </script>
 </body>
 </html>
