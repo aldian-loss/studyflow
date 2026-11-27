@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EdTech World — Dunia Teknologi Pendidikan (Ultimate Master Edition)</title>
+  <title>EdTech World — Dunia Teknologi Pendidikan (Grandmaster Edition)</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -78,7 +78,7 @@
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
     // ========================================================================
-    // KOMPONEN IKON LUCIDE (ROBUST MULTI-CASE MATCHING)
+    // KOMPONEN IKON LUCIDE
     // ========================================================================
     function Icon({ name, className = 'w-4 h-4', ariaHidden = true }) {
       const spanRef = useRef(null);
@@ -98,13 +98,50 @@
     }
 
     // ========================================================================
-    // SOUND & SYNTHESIZED AMBIENCE (WEB AUDIO API - 100% OFFLINE ZERO DEPENDENCY)
+    // TEXT-TO-SPEECH (WEB SPEECH API - SUARA ASLI INDONESIA)
+    // ========================================================================
+    const speechHelper = {
+      isSpeaking: false,
+      speak(text, onEnd) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const clean = text.replace(/[*_#`]/g, '');
+        const utterance = new SpeechSynthesisUtterance(clean);
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.05;
+        const voices = window.speechSynthesis.getVoices();
+        const idVoice = voices.find((v) => v.lang.startsWith('id') || v.lang.includes('ID'));
+        if (idVoice) utterance.voice = idVoice;
+        utterance.onend = () => {
+          this.isSpeaking = false;
+          if (onEnd) onEnd();
+        };
+        utterance.onerror = () => {
+          this.isSpeaking = false;
+          if (onEnd) onEnd();
+        };
+        this.isSpeaking = true;
+        window.speechSynthesis.speak(utterance);
+      },
+      stop() {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          this.isSpeaking = false;
+        }
+      }
+    };
+
+    // ========================================================================
+    // SOUND & SYNTHESIZED AMBIENCE & LO-FI BGM (WEB AUDIO API - 100% OFFLINE)
     // ========================================================================
     const soundManager = {
       muted: false,
       ctx: null,
       rainSource: null,
       rainGain: null,
+      lofiPlaying: false,
+      lofiTimer: null,
 
       getCtx() {
         if (!this.ctx) {
@@ -214,7 +251,6 @@
         } catch (_) {}
       },
 
-      // Ambient Rain Synthesizer (White Noise Buffer + Lowpass Filter)
       startRain() {
         if (this.muted || this.rainSource) return;
         try {
@@ -258,13 +294,66 @@
             this.rainSource = null;
           }
         } catch (_) {}
+      },
+
+      // Relaxing Lo-Fi Pentatonic BGM Generator (Offline Synth)
+      startLoFi() {
+        if (this.muted || this.lofiPlaying) return;
+        const ctx = this.getCtx();
+        if (!ctx) return;
+        this.lofiPlaying = true;
+        const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C D E G A C
+        const bassNotes = [130.81, 164.81, 174.61, 196.00]; // C3, E3, F3, G3
+        let step = 0;
+
+        const playTick = () => {
+          if (!this.lofiPlaying) return;
+          try {
+            const t = ctx.currentTime;
+            if (step % 4 === 0) {
+              const bassOsc = ctx.createOscillator();
+              const bassGain = ctx.createGain();
+              bassOsc.type = 'sine';
+              bassOsc.frequency.setValueAtTime(bassNotes[(step / 4) % bassNotes.length], t);
+              bassGain.gain.setValueAtTime(0.06, t);
+              bassGain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+              bassOsc.connect(bassGain);
+              bassGain.connect(ctx.destination);
+              bassOsc.start(t);
+              bassOsc.stop(t + 0.95);
+            }
+            if (Math.random() < 0.75) {
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(scale[Math.floor(Math.random() * scale.length)], t);
+              gain.gain.setValueAtTime(0.035, t);
+              gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(t);
+              osc.stop(t + 0.5);
+            }
+            step++;
+          } catch (_) {}
+          this.lofiTimer = setTimeout(playTick, 380);
+        };
+        playTick();
+      },
+
+      stopLoFi() {
+        this.lofiPlaying = false;
+        if (this.lofiTimer) {
+          clearTimeout(this.lofiTimer);
+          this.lofiTimer = null;
+        }
       }
     };
 
     // ========================================================================
     // DATA MASTER: 10 KAWASAN EDTECH LENGKAP
     // ========================================================================
-    const STORAGE_KEY = 'edtech_world_save_v4';
+    const STORAGE_KEY = 'edtech_world_save_v5';
 
     const getTodayKey = () => {
       const d = new Date();
@@ -500,8 +589,8 @@
       },
       {
         id: 'isl-desert',
-        name: 'Benua Evaluasi ?',
-        subtitle: 'Terkunci (Kabut Misteri)',
+        name: 'Benua Evaluasi',
+        subtitle: '4 Level Kirkpatrick',
         course: 'Evaluasi Program & Kurikulum',
         biome: 'desert',
         gridX: -2,
@@ -527,8 +616,8 @@
       },
       {
         id: 'isl-pancasila',
-        name: 'Benua Kebangsaan ?',
-        subtitle: 'Terkunci (Kabut Misteri)',
+        name: 'Benua Kebangsaan',
+        subtitle: 'Tripusat Pendidikan Ki Hadjar',
         course: 'Pancasila & Ilmu Pendidikan',
         biome: 'desert',
         gridX: 3,
@@ -656,7 +745,7 @@
       }
     ];
 
-    // Bank Data Flashcards (Spaced Repetition)
+    // Bank Data Flashcards
     const FLASHCARDS_DATA = [
       {
         id: 'fc-1',
@@ -770,6 +859,53 @@
       }
     ];
 
+    // Data Mini-Game Menara Taksonomi Bloom (KKO Piramida)
+    const BLOOM_TIERS = [
+      { level: 'C6', name: 'Menciptakan (Create)', color: '#ec4899', target: 'Merancang arsitektur media pembelajaran interaktif baru' },
+      { level: 'C5', name: 'Mengevaluasi (Evaluate)', color: '#8b5cf6', target: 'Memberikan kritik dan pertimbangan kelayakan metode pembelajaran' },
+      { level: 'C4', name: 'Menganalisis (Analyze)', color: '#3b82f6', target: 'Membedakan komponen sistem instruksional dan korelasi antar variabel' },
+      { level: 'C3', name: 'Menerapkan (Apply)', color: '#10b981', target: 'Mengimplementasikan rumus ADDIE dalam perancangan modul ajar riil' },
+      { level: 'C2', name: 'Memahami (Understand)', color: '#f59e0b', target: 'Meringkas dan menjelaskan konsep Mayer dengan kata-kata sendiri' },
+      { level: 'C1', name: 'Mengingat (Remember)', color: '#ef4444', target: 'Menyebutkan kembali definisi teknologi pendidikan menurut AECT 2008' }
+    ];
+
+    // Data Kasus Simulator ASSURE (Media Matcher)
+    const ASSURE_CASES = [
+      {
+        id: 'case-1',
+        title: 'Siswa Tunanetra Kelas 7 - Mengenal Sistem Tata Surya',
+        learnerProfile: 'Siswa memiliki hambatan penglihatan total (tunanetra), belajar di sekolah inklusi.',
+        objective: 'Menjelaskan perbandingan ukuran dan urutan planet dari matahari.',
+        options: [
+          { label: 'Video YouTube Animasi 4K dengan Subtitle Teks', correct: false, reason: 'Tidak efektif karena siswa tunanetra tidak dapat melihat visual video maupun membaca subtitle teks.' },
+          { label: 'Model Bola Timbul 3D Taktil + Audio Narasi Berbantuan Suara', correct: true, reason: 'Sangat tepat! Siswa dapat meraba tekstur dan proporsi bola planet (taktil) sambil mendengar narasi deskriptif.' },
+          { label: 'Lembar Kerja Kertas Fotokopi Hitam Putih', correct: false, reason: 'Media cetak standar tidak dapat diakses oleh pembelajar tunanetra tanpa huruf Braille atau sentuhan.' }
+        ]
+      },
+      {
+        id: 'case-2',
+        title: 'Daerah 3T Tanpa Sinyal Internet - Mitigasi Bencana Gempa',
+        learnerProfile: 'Sekolah di pulau terpencil tanpa pasokan listrik stabil dan tanpa jaringan seluler.',
+        objective: 'Mempraktikkan prosedur penyelamatan diri saat terjadi gempa bumi.',
+        options: [
+          { label: 'Simulasi Aplikasi Game Virtual Reality (VR) Cloud', correct: false, reason: 'Tidak dapat dijalankan karena keterbatasan listrik, perangkat keras mahal, dan nihilnya koneksi internet.' },
+          { label: 'Poster Bergambar Infografis Cetak + Simulasi Praktik Fisik Langsung', correct: true, reason: 'Sangat tepat! Media visual mandiri energi dikombinasikan dengan metode latihan roleplay nyata (Learning by Doing Dewey).' },
+          { label: 'Webinar Zoom Live dengan Pakar Mitigasi BMKG', correct: false, reason: 'Mustahil terlaksana di kawasan 3T tanpa infrastruktur sinyal telekomunikasi.' }
+        ]
+      },
+      {
+        id: 'case-3',
+        title: 'Mahasiswa Kedokteran - Prosedur Bedah Jantung Berisiko',
+        learnerProfile: 'Mahasiswa profesi kedokteran semester akhir, membutuhkan jam terbang motorik presisi tinggi.',
+        objective: 'Melakukan sayatan katup aorta tanpa risiko mencederai pasien nyata.',
+        options: [
+          { label: 'Buku Teks Diktat Kuliah 800 Halaman', correct: false, reason: 'Hanya melatih aspek kognitif teoretis, tidak melatih koordinasi psikomotorik tindakan bedah.' },
+          { label: 'Simulasi Virtual Reality (VR) Haptic Feedback 3D Interaktif', correct: true, reason: 'Sangat tepat! Memberikan umpan balik rabaan nyata dan simulasi kesalahan fatal tanpa membahayakan nyawa manusia.' },
+          { label: 'Slide Presentasi PowerPoint 20 Halaman', correct: false, reason: 'Terlalu pasif dan tidak memberikan pengalaman immersif prosedur operasi.' }
+        ]
+      }
+    ];
+
     const INITIAL_QUESTS = [
       { id: 'q-1', title: 'Analisis Kawasan AECT & Penerapan ADDIE', islandId: 'isl-hub', stage: 'Analysis & Design', xpReward: 60, citizensReward: 120, estimatedMinutes: 50, completedMinutes: 25, done: false },
       { id: 'q-2', title: 'Redesign Infografis dengan Prinsip Mayer', islandId: 'isl-design', stage: 'Development', xpReward: 50, citizensReward: 95, estimatedMinutes: 45, completedMinutes: 0, done: false },
@@ -798,7 +934,7 @@
     ];
 
     // ========================================================================
-    // ENGINE KANVAS VOXEL ISOMETRIK LENGKAP
+    // ENGINE KANVAS VOXEL ISOMETRIK LENGKAP DENGAN SATWA LAUT & MERCUSUAR
     // ========================================================================
     function IsometricWorldCanvas({
       islands,
@@ -824,6 +960,7 @@
 
       const touchDistRef = useRef(null);
 
+      // Partikel Salju, Kunang-Kunang, Hujan
       const snowflakesRef = useRef(
         Array.from({ length: 40 }, () => ({
           x: (Math.random() - 0.5) * 160,
@@ -1019,6 +1156,7 @@
             }
           }
 
+          // Awan Melayang
           const clouds = [
             { gx: -11, gy: -1, speed: 0.4 },
             { gx: 2, gy: -12, speed: 0.3 },
@@ -1030,6 +1168,33 @@
             const cp = isoToScreen(c.gx, c.gy);
             drawVoxelBlock(ctx, cp.x + drift, cp.y - 55, 58, 29, 14, cloudTopColor, 'rgba(100, 116, 139, 0.6)', 'rgba(71, 85, 105, 0.6)');
           });
+
+          // EKOSISTEM: BURUNG CAMAR VOXEL TERBANG MELINGKAR
+          for (let b = 0; b < 3; b++) {
+            const birdAngle = time * 0.8 + b * 2.1;
+            const bx = Math.cos(birdAngle) * (90 + b * 40);
+            const by = Math.sin(birdAngle) * (50 + b * 20) - 100 - b * 15;
+            const flap = Math.sin(time * 8 + b) * 3;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(bx, by, 6, 3);
+            ctx.fillRect(bx - 5, by - flap, 5, 2);
+            ctx.fillRect(bx + 6, by - flap, 5, 2);
+          }
+
+          // EKOSISTEM: LUMBA-LUMBA VOXEL MELOMPAT DI LAUT
+          const dolphinPhase = Math.sin(time * 2.5);
+          if (dolphinPhase > 0) {
+            const dArcY = -dolphinPhase * 28;
+            const dx = 130 + Math.sin(time * 0.5) * 40;
+            const dy = -60 + dArcY;
+            drawVoxelBlock(ctx, dx, dy, 12, 6, 6, '#38bdf8', '#0284c7', '#0369a1');
+            drawVoxelBlock(ctx, dx + 4, dy + 2, 6, 3, 4, '#0ea5e9', '#0369a1', '#075985');
+            // Cipratan air
+            ctx.beginPath();
+            ctx.arc(dx, -60, 8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fill();
+          }
 
           const allTiles = [];
           const newHitboxes = [];
@@ -1165,6 +1330,24 @@
             }
           });
 
+          // SOROTAN LAMPU MERCUSUAR BERPUTAR SAAT MALAM/BADAI
+          if (timeMode === 'night' || timeMode === 'storm' || timeMode === 'aurora') {
+            const hubPos = isoToScreen(0, 0);
+            const beamAngle = time * 1.5;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(hubPos.x, hubPos.y - 42);
+            ctx.arc(hubPos.x, hubPos.y - 42, 280, beamAngle - 0.25, beamAngle + 0.25);
+            ctx.closePath();
+            const beamGrad = ctx.createRadialGradient(hubPos.x, hubPos.y - 42, 10, hubPos.x, hubPos.y - 42, 280);
+            beamGrad.addColorStop(0, 'rgba(254, 240, 138, 0.45)');
+            beamGrad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+            ctx.fillStyle = beamGrad;
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Kabut Misteri
           islands.filter((isl) => !isl.unlocked).forEach((locked) => {
             const p = isoToScreen(locked.gridX, locked.gridY);
             for (let f = 0; f < 4; f++) {
@@ -1179,6 +1362,7 @@
             }
           });
 
+          // Botol Hanyut
           const newBottleHitboxes = [];
           bottles.forEach((bot) => {
             if (bot.claimed) return;
@@ -1198,7 +1382,7 @@
           });
           bottleHitboxesRef.current = newBottleHitboxes;
 
-          // KAPAL LAYAR PEMAIN (DENGAN KUSTOMISASI WARNA LAYAR)
+          // Kapal Layar Pemain
           const targetIsland = islands.find((i) => i.id === selectedIslandId) || islands[0];
           const targetIslandPos = isoToScreen(targetIsland.gridX + 1.8, targetIsland.gridY + 1.8);
           const curBx = boatPos.x + (targetIslandPos.x - boatPos.x) * 0.04;
@@ -1213,7 +1397,6 @@
           drawVoxelBlock(ctx, curBx, curBy, 18, 9, 7, '#b45309', '#92400e', '#78350f');
           drawVoxelBlock(ctx, curBx, curBy - 7, 4, 2, 14, '#64748b', '#475569', '#334155');
           drawVoxelBlock(ctx, curBx + 3, curBy - 15, 12, 6, 8, '#ffffff', '#f1f5f9', '#e2e8f0');
-          // Bendera Layar Kustom Pemain
           drawVoxelBlock(ctx, curBx - 3, curBy - 21, 6, 3, 3, sailColor, sailColor, sailColor);
 
           if (timeMode === 'storm') {
@@ -1279,7 +1462,7 @@
             ctx.font = '700 12px "Plus Jakarta Sans", sans-serif';
             const titleWidth = ctx.measureText(isl.name).width;
             ctx.font = '500 10px "Plus Jakarta Sans", sans-serif';
-            const subText = isl.unlocked ? `• ${isl.subtitle}` : '🔒 Kabut Misteri';
+            const subText = isl.unlocked ? `• ${isl.subtitle}` : '🔒 Kabut Misteri (Klik Kuis)';
             const subWidth = ctx.measureText(subText).width;
 
             const boxW = Math.max(titleWidth, subWidth) + 26;
@@ -1587,9 +1770,10 @@
       const [sailColor, setSailColor] = useState(savedData?.sailColor || '#10b981');
       const [masteredCards, setMasteredCards] = useState(savedData?.masteredCards || []);
 
-      // Cuaca: 'day' | 'sunset' | 'night' | 'storm' | 'aurora'
+      // Cuaca & Audio
       const [timeMode, setTimeMode] = useState('day');
       const [isMuted, setIsMuted] = useState(false);
+      const [isBgmOn, setIsBgmOn] = useState(false);
 
       // Kamera & Seleksi
       const [camera, setCamera] = useState({ x: 0, y: 10, zoom: 1 });
@@ -1598,7 +1782,11 @@
       const [burstTrigger, setBurstTrigger] = useState(null);
       const [boatPos, setBoatPos] = useState({ x: 0, y: 0 });
 
-      // Modal: 'none' | 'island' | 'paspor' | 'misi' | 'skills' | 'wizard' | 'boss' | 'mentor' | 'bottle' | 'arena' | 'voting' | 'alun' | 'flashcards' | 'sorter' | 'certificate' | 'menu'
+      // Mode Tur Sinematik Otomatis
+      const [isTourActive, setIsTourActive] = useState(false);
+      const [tourIndex, setTourIndex] = useState(0);
+
+      // Modals
       const [activeModal, setActiveModal] = useState('none');
       const [selectedBottleId, setSelectedBottleId] = useState(null);
       const [toast, setToast] = useState(null);
@@ -1610,7 +1798,7 @@
       const [arenaRunning, setArenaRunning] = useState(false);
       const [rainSoundOn, setRainSoundOn] = useState(false);
 
-      // 2. Auto-Save ke LocalStorage Setiap Perubahan State Kritis
+      // 2. Auto-Save ke LocalStorage
       useEffect(() => {
         try {
           const payload = {
@@ -1643,6 +1831,38 @@
         }
       }, [timeMode, activeModal, rainSoundOn]);
 
+      // Kontrol BGM Lo-Fi
+      useEffect(() => {
+        if (isBgmOn && !isMuted) {
+          soundManager.startLoFi();
+        } else {
+          soundManager.stopLoFi();
+        }
+      }, [isBgmOn, isMuted]);
+
+      // LOGIKA TUR SINEMATIK OTOMATIS
+      useEffect(() => {
+        if (!isTourActive) return;
+        const currentTourIsland = islands[tourIndex];
+        if (!currentTourIsland) return;
+
+        setSelectedIslandId(currentTourIsland.id);
+        setCamera({
+          x: -currentTourIsland.gridX * 15,
+          y: -currentTourIsland.gridY * 10,
+          zoom: 1.3
+        });
+
+        // Narasi Suara
+        speechHelper.speak(`${currentTourIsland.name}. ${currentTourIsland.summary}`);
+
+        const tourTimer = setTimeout(() => {
+          setTourIndex((prev) => (prev + 1) % islands.length);
+        }, 7500);
+
+        return () => clearTimeout(tourTimer);
+      }, [isTourActive, tourIndex, islands]);
+
       const triggerToast = useCallback((msg) => {
         setToast(msg);
         setTimeout(() => setToast((curr) => (curr === msg ? null : curr)), 3800);
@@ -1659,7 +1879,31 @@
       const toggleMute = () => {
         soundManager.muted = !isMuted;
         setIsMuted(!isMuted);
-        if (!isMuted) soundManager.stopRain();
+        if (!isMuted) {
+          soundManager.stopRain();
+          soundManager.stopLoFi();
+          speechHelper.stop();
+        }
+      };
+
+      const toggleBgm = () => {
+        soundManager.playClick();
+        setIsBgmOn(!isBgmOn);
+        triggerToast(!isBgmOn ? '🎵 Musik Lo-Fi Belajar: AKTIF' : 'Musik Lo-Fi dimatikan');
+      };
+
+      const startTour = () => {
+        soundManager.playClick();
+        setActiveModal('none');
+        setIsTourActive(true);
+        setTourIndex(0);
+        triggerToast('🎬 Memulai Tur Sinematik Keliling Kampus Voxel!');
+      };
+
+      const stopTour = () => {
+        setIsTourActive(false);
+        speechHelper.stop();
+        triggerToast('Tur Sinematik Dihentikan');
       };
 
       const flyToIsland = (islandId) => {
@@ -1808,6 +2052,7 @@
             islands={islands}
             selectedIslandId={selectedIslandId}
             onSelectIsland={(id) => {
+              if (isTourActive) stopTour();
               setSelectedIslandId(id);
               setActiveModal('island');
             }}
@@ -1820,11 +2065,36 @@
             setBoatPos={setBoatPos}
             bottles={bottles}
             onSelectBottle={(bId) => {
+              if (isTourActive) stopTour();
               setSelectedBottleId(bId);
               setActiveModal('bottle');
             }}
             sailColor={sailColor}
           />
+
+          {/* OVERLAY MODE TUR SINEMATIK */}
+          {isTourActive && (
+            <div className="fixed top-20 inset-x-0 z-30 flex justify-center pointer-events-none">
+              <div className="pointer-events-auto max-w-lg mx-4 p-4 rounded-3xl bg-slate-900/95 backdrop-blur-xl border border-emerald-400/40 text-white shadow-2xl space-y-2 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                      Tur Kampus ({tourIndex + 1}/{islands.length})
+                    </span>
+                  </div>
+                  <button
+                    onClick={stopTour}
+                    className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold cursor-pointer"
+                  >
+                    ⏹️ Hentikan Tur
+                  </button>
+                </div>
+                <h3 className="font-extrabold text-base text-amber-300">{selectedIsland.name}</h3>
+                <p className="text-xs text-slate-200 leading-relaxed">{selectedIsland.summary}</p>
+              </div>
+            </div>
+          )}
 
           {/* TOAST NOTIFIKASI */}
           {toast && (
@@ -1842,7 +2112,7 @@
               </div>
               <div>
                 <h1 className="font-extrabold text-sm tracking-wide leading-none uppercase">EDTECH WORLD</h1>
-                <span className="text-[11px] text-emerald-300 font-medium">Ultimate Learning Metaverse</span>
+                <span className="text-[11px] text-emerald-300 font-medium">Grandmaster Learning Metaverse</span>
               </div>
             </div>
 
@@ -1890,6 +2160,17 @@
                   <span>{xp} XP</span>
                 </div>
               </button>
+
+              {/* TOMBOL BGM LO-FI */}
+              <button
+                onClick={toggleBgm}
+                title="Putar Musik Latar Lo-Fi Belajar"
+                className={`px-3 py-2 rounded-xl backdrop-blur-md border shadow-md text-center cursor-pointer font-bold text-xs flex items-center gap-1 ${
+                  isBgmOn ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-white/95 text-slate-700 border-slate-200'
+                }`}
+              >
+                <span>{isBgmOn ? '🎵 BGM: ON' : '🔈 BGM: OFF'}</span>
+              </button>
             </div>
 
             {/* PENCARIAN TEORI GLOBAL */}
@@ -1905,6 +2186,14 @@
 
           {/* KONTROL KANAN ATAS */}
           <div className="fixed top-3.5 right-3.5 z-20 flex items-center gap-2">
+            <button
+              onClick={startTour}
+              title="Mulai Tur Sinematik Otomatis"
+              className="px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-extrabold text-xs shadow-lg cursor-pointer flex items-center gap-1.5"
+            >
+              <span>🎬 Tur Kampus</span>
+            </button>
+
             <button
               onClick={cycleWeather}
               title="Ganti Cuaca Dunia"
@@ -1972,22 +2261,23 @@
               {[
                 { id: 'none', label: 'Peta', icon: 'Map' },
                 { id: 'island', label: 'Kawasan', icon: 'BookOpen' },
-                { id: 'skills', label: 'Skill Tree', icon: 'GitFork' },
+                { id: 'bloom', label: 'Piramida Bloom', icon: 'Flame' },
+                { id: 'assureMatcher', label: 'Simulasi ASSURE', icon: 'Sliders' },
                 { id: 'flashcards', label: 'Flashcards', icon: 'Layers' },
                 { id: 'sorter', label: 'Pemilah CLT', icon: 'Sliders' },
                 { id: 'alun', label: 'Alun-Alun', icon: 'Users' },
-                { id: 'misi', label: 'Misi', icon: 'ListChecks' },
-                { id: 'wizard', label: 'Desain ADDIE', icon: 'FileSpreadsheet' },
+                { id: 'wizard', label: 'Modul Ajar', icon: 'FileSpreadsheet' },
                 { id: 'boss', label: 'Boss Battle', icon: 'Flame' },
                 { id: 'mentor', label: 'Prof. Voxel', icon: 'Sparkles' },
                 { id: 'arena', label: 'Arena Fokus', icon: 'Timer' },
-                { id: 'paspor', label: 'Paspor', icon: 'IdCard' }
+                { id: 'paspor', label: 'Paspor & ID', icon: 'IdCard' }
               ].map((nav) => {
                 const isActive = activeModal === nav.id;
                 return (
                   <button
                     key={nav.id}
                     onClick={() => {
+                      if (isTourActive) stopTour();
                       soundManager.playClick();
                       setActiveModal(nav.id);
                     }}
@@ -2007,7 +2297,7 @@
           {/* DAFTAR MODAL INTERAKTIF */}
           {/* ======================================================================== */}
 
-          {/* MODAL 1: DETAIL KAWASAN + FASILITAS & KUIS */}
+          {/* MODAL 1: DETAIL KAWASAN + FASILITAS & MULTI-KUIS */}
           {activeModal === 'island' && (
             <EnhancedIslandDetailModal
               island={selectedIsland}
@@ -2021,12 +2311,41 @@
               onPassQuiz={() => {
                 growIslandProsperity(selectedIsland.id, 25, 40, 90, `Kuis kawasan "${selectedIsland.name}" berhasil dijawab!`);
               }}
+              onUnlockIsland={() => {
+                growIslandProsperity(selectedIsland.id, 40, 100, 200, `Kabut misteri di kawasan "${selectedIsland.name}" berhasil disingkap!`);
+              }}
               onBuildFacility={(type, cost, name) => handleBuildFacility(selectedIsland.id, type, cost, name)}
               userXp={xp}
             />
           )}
 
-          {/* MODAL 2: POHON KETERAMPILAN (SKILL TREE) */}
+          {/* MODAL 2: MINI-GAME MENARA PIRAMIDA TAKSONOMI BLOOM (C1-C6) */}
+          {activeModal === 'bloom' && (
+            <BloomPyramidModal
+              onSuccess={(earnedXp) => {
+                setXp((x) => x + earnedXp);
+                setCitizens((c) => c + 180);
+                soundManager.playVictory();
+                triggerToast(`Piramida Taksonomi Bloom Berhasil Dibangun! (+${earnedXp} XP)`);
+              }}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 3: SIMULATOR PEMILIHAN MEDIA ASSURE */}
+          {activeModal === 'assureMatcher' && (
+            <AssureMatcherModal
+              onSuccess={(earnedXp) => {
+                setXp((x) => x + earnedXp);
+                setCitizens((c) => c + 150);
+                soundManager.playVictory();
+                triggerToast(`Simulasi Pemilihan Media ASSURE Selesai! (+${earnedXp} XP)`);
+              }}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 4: POHON KETERAMPILAN (SKILL TREE) */}
           {activeModal === 'skills' && (
             <SkillTreeModal
               skillTree={skillTree}
@@ -2036,7 +2355,7 @@
             />
           )}
 
-          {/* MODAL 3: FLASHCARDS TEORI TEKPEND (SPACED REPETITION) */}
+          {/* MODAL 5: FLASHCARDS TEORI TEKPEND */}
           {activeModal === 'flashcards' && (
             <FlashcardsModal
               masteredCards={masteredCards}
@@ -2052,7 +2371,7 @@
             />
           )}
 
-          {/* MODAL 4: MINI-GAME PEMILAH BEBAN KOGNITIF (CLT SORTER) */}
+          {/* MODAL 6: MINI-GAME PEMILAH BEBAN KOGNITIF (CLT SORTER) */}
           {activeModal === 'sorter' && (
             <CognitiveLoadSorterModal
               onSuccess={(earnedXp) => {
@@ -2065,7 +2384,7 @@
             />
           )}
 
-          {/* MODAL 5: ALUN-ALUN KOMUNITAS (INTERAKTIF & BISA POSTING) */}
+          {/* MODAL 7: ALUN-ALUN KOMUNITAS */}
           {activeModal === 'alun' && (
             <AlunAlunModal
               messages={alunMessages}
@@ -2077,19 +2396,19 @@
             />
           )}
 
-          {/* MODAL 6: WIZARD DESAIN PEMBELAJARAN ADDIE (PRINT & MARKDOWN) */}
+          {/* MODAL 8: WIZARD MODUL AJAR (KURIKULUM MERDEKA & ADDIE) */}
           {activeModal === 'wizard' && (
             <AddieProjectWizardModal
               onClose={() => setActiveModal('none')}
               onSaveProject={(proj) => {
                 setXp((x) => x + 75);
                 soundManager.playVictory();
-                triggerToast('Modul ADDIE berhasil dibuat & disimpan! (+75 XP)');
+                triggerToast('Modul Ajar berhasil dirancang & disimpan! (+75 XP)');
               }}
             />
           )}
 
-          {/* MODAL 7: BOSS BATTLE (MONSTER BEBAN KOGNITIF) */}
+          {/* MODAL 9: BOSS BATTLE */}
           {activeModal === 'boss' && (
             <BossBattleModal
               onClose={() => setActiveModal('none')}
@@ -2102,12 +2421,12 @@
             />
           )}
 
-          {/* MODAL 8: MENTOR AI PROF. VOXEL */}
+          {/* MODAL 10: MENTOR AI PROF. VOXEL DENGAN SUARA NARATOR */}
           {activeModal === 'mentor' && (
             <ProfVoxelMentorModal onClose={() => setActiveModal('none')} />
           )}
 
-          {/* MODAL 9: BOTOL HANYUT */}
+          {/* MODAL 11: BOTOL HANYUT DENGAN SUARA NARASI TOKOH */}
           {activeModal === 'bottle' && activeBottle && (
             <BottleMessageModal
               bottle={activeBottle}
@@ -2116,7 +2435,7 @@
             />
           )}
 
-          {/* MODAL 10: PASPOR + KUSTOMISASI LAYAR KAPAL */}
+          {/* MODAL 12: PASPOR & KARTU MAHASISWA QR CODE */}
           {activeModal === 'paspor' && (
             <PasporModal
               playerName={playerName}
@@ -2134,7 +2453,7 @@
             />
           )}
 
-          {/* MODAL 11: SERTIFIKAT KELULUSAN (CANVAS DOWNLOAD) */}
+          {/* MODAL 13: SERTIFIKAT KELULUSAN */}
           {activeModal === 'certificate' && (
             <CertificateModal
               playerName={playerName}
@@ -2145,7 +2464,7 @@
             />
           )}
 
-          {/* MODAL 12: MISI KAWASAN */}
+          {/* MODAL 14: MISI KAWASAN */}
           {activeModal === 'misi' && (
             <MisiAddieModal
               quests={quests}
@@ -2159,7 +2478,7 @@
             />
           )}
 
-          {/* MODAL 13: ARENA FOKUS DENGAN SUARA HUJAN SYNTH */}
+          {/* MODAL 15: ARENA FOKUS DENGAN SUARA HUJAN SYNTH */}
           {activeModal === 'arena' && (
             <ArenaFokusModal
               quests={quests}
@@ -2193,16 +2512,17 @@
             />
           )}
 
-          {/* MODAL 14: DEWAN VOTING */}
+          {/* MODAL 16: DEWAN VOTING */}
           {activeModal === 'voting' && (
             <VotingModal poll={poll} votedOptionId={votedOptionId} onVote={handleVote} onClose={() => setActiveModal('none')} />
           )}
 
-          {/* MODAL 15: MENU UTAMA & RESET PROGRESS */}
+          {/* MODAL 17: MENU UTAMA */}
           {activeModal === 'menu' && (
             <MenuModal
               onResetProgress={handleResetAllProgress}
               onOpenFeature={(modalName) => setActiveModal(modalName)}
+              onStartTour={startTour}
               onClose={() => setActiveModal('none')}
             />
           )}
@@ -2211,9 +2531,9 @@
     }
 
     // ========================================================================
-    // MODAL: DETAIL KAWASAN + FASILITAS & MULTI-KUIS
+    // MODAL: DETAIL KAWASAN + FASILITAS, MULTI-KUIS & TEKA-TEKI BUKA KABUT
     // ========================================================================
-    function EnhancedIslandDetailModal({ island, quests, onClose, onCompleteQuest, onStartArena, onPassQuiz, onBuildFacility, userXp }) {
+    function EnhancedIslandDetailModal({ island, quests, onClose, onCompleteQuest, onStartArena, onPassQuiz, onUnlockIsland, onBuildFacility, userXp }) {
       const [tab, setTab] = useState('summary');
       const [selectedQuizIdx, setSelectedQuizIdx] = useState(0);
       const [selectedOpt, setSelectedOpt] = useState(null);
@@ -2225,7 +2545,13 @@
       const handleCheckQuiz = () => {
         if (selectedOpt === null || quizAnswered || !curQuiz) return;
         setQuizAnswered(true);
-        if (selectedOpt === curQuiz.ans) onPassQuiz();
+        if (selectedOpt === curQuiz.ans) {
+          if (!island.unlocked) {
+            onUnlockIsland();
+          } else {
+            onPassQuiz();
+          }
+        }
       };
 
       const facilities = island.facilities || [];
@@ -2261,6 +2587,17 @@
             <div className="p-6 overflow-y-auto space-y-4 text-xs">
               {tab === 'summary' && (
                 <div className="space-y-4">
+                  {!island.unlocked && (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 space-y-2">
+                      <div className="font-extrabold flex items-center gap-1.5">
+                        <span>🔒 Kawasan Terhalang Kabut Misteri</span>
+                      </div>
+                      <p className="text-[11px] leading-relaxed">
+                        Selesaikan tantangan kuis di tab <strong>⭐ Kuis</strong> untuk memecahkan sandi kurikulum dan menyingkap kabut kawasan ini secara permanen!
+                      </p>
+                    </div>
+                  )}
+
                   <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
                     <div className="flex items-center justify-between font-bold mb-1.5">
                       <span className="text-slate-700">Tingkat Kemakmuran Pulau</span>
@@ -2329,7 +2666,7 @@
                 <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3">
                   <div className="flex items-center justify-between font-bold text-indigo-950">
                     <span>Soal {selectedQuizIdx + 1} dari {quizList.length}</span>
-                    <span className="text-xs text-indigo-600">+40 XP</span>
+                    <span className="text-xs text-indigo-600">{!island.unlocked ? '🔓 Buka Kawasan (+100 XP)' : '+40 XP'}</span>
                   </div>
                   <p className="font-semibold text-slate-800 text-sm">{curQuiz.q}</p>
                   <div className="space-y-2">
@@ -2356,7 +2693,7 @@
                   ) : (
                     <div className="flex items-center justify-between pt-2">
                       <p className="font-bold text-emerald-700">
-                        {selectedOpt === curQuiz.ans ? 'Benar sekali! (+40 XP & +90 Penduduk)' : 'Belum tepat, coba pahami kembali materinya!'}
+                        {selectedOpt === curQuiz.ans ? (island.unlocked ? 'Benar sekali! (+40 XP)' : 'Luar biasa! Kabut terpecahkan dan kawasan terbuka!') : 'Belum tepat, coba pahami kembali materinya!'}
                       </p>
                       {selectedQuizIdx < quizList.length - 1 && (
                         <button onClick={() => { setSelectedQuizIdx(selectedQuizIdx + 1); setSelectedOpt(null); setQuizAnswered(false); }} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-xs">
@@ -2386,6 +2723,234 @@
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: MINI-GAME MENARA PIRAMIDA TAKSONOMI BLOOM (C1-C6)
+    // ========================================================================
+    function BloomPyramidModal({ onSuccess, onClose }) {
+      const [curTierIdx, setCurTierIdx] = useState(0);
+      const [score, setScore] = useState(0);
+      const [feedback, setFeedback] = useState(null);
+      const [gameOver, setGameOver] = useState(false);
+
+      const tier = BLOOM_TIERS[curTierIdx];
+
+      // KKO options to pick from
+      const options = useMemo(() => {
+        const pool = [
+          { text: tier.target, correct: true },
+          { text: 'Menghafal tanpa memahami konteks', correct: false },
+          { text: 'Menjiplak karya orang lain tanpa refleksi', correct: false }
+        ];
+        return pool.sort(() => Math.random() - 0.5);
+      }, [tier]);
+
+      const handlePick = (isCorrect) => {
+        if (feedback) return;
+        if (isCorrect) {
+          soundManager.playCoin();
+          setScore((s) => s + 1);
+          setFeedback({ isCorrect: true, text: `Tepat! Tingkat ${tier.level} (${tier.name}) tercapai!` });
+        } else {
+          soundManager.playThunder();
+          setFeedback({ isCorrect: false, text: `Kurang tepat! Tingkat ${tier.level} berfokus pada aktivitas kognitif tingkat lanjut.` });
+        }
+      };
+
+      const handleNext = () => {
+        setFeedback(null);
+        if (curTierIdx < BLOOM_TIERS.length - 1) {
+          setCurTierIdx(curTierIdx + 1);
+        } else {
+          setGameOver(true);
+          onSuccess(score * 25 + 50);
+        }
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🏛️</span>
+                <h3 className="font-extrabold text-sm">Menara Piramida Taksonomi Bloom</h3>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            {!gameOver ? (
+              <div className="space-y-4 text-xs">
+                {/* Visual Piramida Tingkat */}
+                <div className="flex flex-col items-center gap-1 py-2">
+                  {BLOOM_TIERS.map((t, idx) => (
+                    <div
+                      key={t.level}
+                      style={{
+                        width: `${40 + (BLOOM_TIERS.length - 1 - idx) * 11}%`,
+                        backgroundColor: idx === curTierIdx ? t.color : idx < curTierIdx ? '#10b981' : '#cbd5e1'
+                      }}
+                      className="py-1.5 px-3 rounded-lg text-white font-extrabold text-[10px] text-center shadow-xs transition-all"
+                    >
+                      {t.level}: {t.name} {idx < curTierIdx ? '✓' : idx === curTierIdx ? '⚡' : ''}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 text-slate-800 font-semibold leading-relaxed">
+                  Pilih deskripsi Kata Kerja Operasional (KKO) yang paling tepat untuk mengisi lantai <strong>{tier.level} — {tier.name}</strong>:
+                </div>
+
+                <div className="space-y-2">
+                  {options.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handlePick(opt.correct)}
+                      disabled={Boolean(feedback)}
+                      className="w-full text-left p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50 font-semibold text-xs cursor-pointer"
+                    >
+                      {opt.text}
+                    </button>
+                  ))}
+                </div>
+
+                {feedback && (
+                  <div className={`p-3.5 rounded-2xl border space-y-2 ${feedback.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-rose-50 border-rose-300 text-rose-900'}`}>
+                    <div className="font-extrabold">{feedback.isCorrect ? '✓ Jawaban Tepat!' : '✗ Kurang Tepat!'}</div>
+                    <p className="text-[11px] leading-relaxed">{feedback.text}</p>
+                    <button onClick={handleNext} className="mt-1 px-4 py-1.5 rounded-xl bg-slate-900 text-white font-bold cursor-pointer">
+                      Lanjut Tingkat Berikutnya →
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-3">
+                <div className="text-4xl">🏛️🏆</div>
+                <h4 className="font-extrabold text-base text-slate-900">PIRAMIDA BLOOM TUNTAS DIBANGUN!</h4>
+                <p className="text-xs text-slate-600">
+                  Kamu telah menuntaskan simulasi taksonomi dari C1 hingga C6 dengan skor <strong>{score}/{BLOOM_TIERS.length}</strong>!
+                </p>
+                <button onClick={onClose} className="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
+                  Selesai
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: SIMULATOR PEMILIHAN MEDIA ASSURE (MEDIA MATCHER)
+    // ========================================================================
+    function AssureMatcherModal({ onSuccess, onClose }) {
+      const [curCaseIdx, setCurCaseIdx] = useState(0);
+      const [score, setScore] = useState(0);
+      const [pickedOpt, setPickedOpt] = useState(null);
+      const [isAnswered, setIsAnswered] = useState(false);
+      const [gameOver, setGameOver] = useState(false);
+
+      const curCase = ASSURE_CASES[curCaseIdx];
+
+      const handleCheck = (idx) => {
+        if (isAnswered) return;
+        setPickedOpt(idx);
+        setIsAnswered(true);
+        if (curCase.options[idx].correct) {
+          soundManager.playCoin();
+          setScore((s) => s + 1);
+        } else {
+          soundManager.playThunder();
+        }
+      };
+
+      const handleNext = () => {
+        setIsAnswered(false);
+        setPickedOpt(null);
+        if (curCaseIdx < ASSURE_CASES.length - 1) {
+          setCurCaseIdx(curCaseIdx + 1);
+        } else {
+          setGameOver(true);
+          onSuccess(score * 35 + 50);
+        }
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🎯</span>
+                <h3 className="font-extrabold text-sm">Simulator Pemilihan Media ASSURE</h3>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            {!gameOver ? (
+              <div className="space-y-4 text-xs">
+                <div className="flex justify-between font-bold text-slate-500">
+                  <span>Studi Kasus {curCaseIdx + 1} dari {ASSURE_CASES.length}</span>
+                  <span className="text-emerald-600">Skor: {score} Benar</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <h4 className="font-extrabold text-sm text-slate-900">{curCase.title}</h4>
+                  <p className="text-slate-600"><strong>Profil Siswa (Analyze):</strong> {curCase.learnerProfile}</p>
+                  <p className="text-slate-600"><strong>Tujuan Belajar (State Objectives):</strong> {curCase.objective}</p>
+                </div>
+
+                <p className="font-bold text-slate-700">Tentukan kombinasi media & metode terbaik (Select Media & Materials):</p>
+
+                <div className="space-y-2">
+                  {curCase.options.map((opt, idx) => {
+                    let btnStyle = 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800';
+                    if (isAnswered) {
+                      if (opt.correct) btnStyle = 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold';
+                      else if (pickedOpt === idx) btnStyle = 'border-rose-500 bg-rose-50 text-rose-950 font-bold';
+                    }
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleCheck(idx)}
+                        disabled={isAnswered}
+                        className={`w-full text-left p-3 rounded-xl border text-xs cursor-pointer ${btnStyle}`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {isAnswered && (
+                  <div className={`p-3.5 rounded-2xl border space-y-2 ${curCase.options[pickedOpt].correct ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-rose-50 border-rose-300 text-rose-900'}`}>
+                    <div className="font-extrabold">{curCase.options[pickedOpt].correct ? '✓ Analisis ASSURE Sangat Tepat!' : '✗ Analisis Kurang Tepat!'}</div>
+                    <p className="text-[11px] leading-relaxed">{curCase.options[pickedOpt].reason}</p>
+                    <button onClick={handleNext} className="mt-1 px-4 py-1.5 rounded-xl bg-slate-900 text-white font-bold cursor-pointer">
+                      Lanjut Kasus Berikutnya →
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-3">
+                <div className="text-4xl">🎓🎉</div>
+                <h4 className="font-extrabold text-base text-slate-900">SIMULASI ASSURE TUNTAS!</h4>
+                <p className="text-xs text-slate-600">
+                  Kamu berhasil menyelesaikan seluruh analisis pemilihan media dengan skor <strong>{score}/{ASSURE_CASES.length}</strong>!
+                </p>
+                <button onClick={onClose} className="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
+                  Selesai
+                </button>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -2456,7 +3021,7 @@
     }
 
     // ========================================================================
-    // MODAL: FLASHCARDS TEORI TEKPEND (SPACED REPETITION)
+    // MODAL: FLASHCARDS TEORI TEKPEND
     // ========================================================================
     function FlashcardsModal({ masteredCards, onMarkMastered, onClose }) {
       const [curIdx, setCurIdx] = useState(0);
@@ -2496,7 +3061,6 @@
                 <span>Kartu {curIdx + 1} dari {FLASHCARDS_DATA.length}</span>
               </div>
 
-              {/* KARTU INTERAKTIF */}
               <div
                 onClick={() => {
                   soundManager.playClick();
@@ -2518,7 +3082,6 @@
                 </div>
               </div>
 
-              {/* NAVIGASI & KLAIM DIKUASAI */}
               <div className="flex items-center justify-between gap-2 pt-2 border-t">
                 <button onClick={handlePrev} className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer">
                   ← Sebelumnya
@@ -2653,7 +3216,7 @@
     }
 
     // ========================================================================
-    // MODAL: ALUN-ALUN KOMUNITAS (INTERAKTIF & BISA POSTING)
+    // MODAL: ALUN-ALUN KOMUNITAS
     // ========================================================================
     function AlunAlunModal({ messages, onPostMessage, onLikeMessage, playerName, islands, onClose }) {
       const [inputMsg, setInputMsg] = useState('');
@@ -2683,7 +3246,6 @@
             </div>
 
             <div className="p-5 overflow-y-auto space-y-4 text-xs">
-              {/* FORM BUAT POSTINGAN BARU */}
               <form onSubmit={handleSubmit} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="font-bold text-slate-800">Bagikan Temuan atau Refleksi Belajarmu:</div>
                 <textarea
@@ -2720,7 +3282,6 @@
                 </div>
               </form>
 
-              {/* LIST PESAN WARGA */}
               <div className="space-y-3">
                 {messages.map((m) => (
                   <div key={m.id} className="p-4 rounded-2xl border border-slate-200 space-y-2">
@@ -2768,7 +3329,6 @@
         const w = canvas.width;
         const h = canvas.height;
 
-        // 1. Background Elegan Parchment Emas
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, 0, w, h);
 
@@ -2779,14 +3339,12 @@
         ctx.fillStyle = grad;
         ctx.fillRect(20, 20, w - 40, h - 40);
 
-        // 2. Bingkai Emas Ganda
         ctx.strokeStyle = '#facc15';
         ctx.lineWidth = 4;
         ctx.strokeRect(35, 35, w - 70, h - 70);
         ctx.lineWidth = 1.5;
         ctx.strokeRect(45, 45, w - 90, h - 90);
 
-        // Ornamen Sudut
         const corners = [
           [35, 35], [w - 35, 35], [35, h - 35], [w - 35, h - 35]
         ];
@@ -2797,7 +3355,6 @@
           ctx.fill();
         });
 
-        // 3. Teks Header & Judul
         ctx.textAlign = 'center';
         ctx.fillStyle = '#94a3b8';
         ctx.font = '700 16px "Plus Jakarta Sans", sans-serif';
@@ -2811,7 +3368,6 @@
         ctx.font = '500 16px "Plus Jakarta Sans", sans-serif';
         ctx.fillText('Sertifikat ini dengan bangga dianugerahkan kepada:', w / 2, 210);
 
-        // Nama Mahasiswa
         ctx.fillStyle = '#38bdf8';
         ctx.font = '800 34px "Plus Jakarta Sans", sans-serif';
         ctx.fillText(playerName.toUpperCase(), w / 2, 265);
@@ -2820,7 +3376,6 @@
         ctx.font = '600 14px "JetBrains Mono", monospace';
         ctx.fillText(`PASPOR ID: ${passportId}  •  TINGKAT: LEVEL ${levelNumber} (${xp} XP)`, w / 2, 305);
 
-        // Deskripsi Capaian
         ctx.fillStyle = '#cbd5e1';
         ctx.font = '400 15px "Plus Jakarta Sans", sans-serif';
         const textL1 = 'Telah berhasil menuntaskan seluruh penjelajahan pulau pembelajaran EdTech World,';
@@ -2830,7 +3385,6 @@
         ctx.fillText(textL2, w / 2, 380);
         ctx.fillText(textL3, w / 2, 405);
 
-        // Garis Pembatas
         ctx.strokeStyle = 'rgba(250, 204, 21, 0.4)';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -2838,13 +3392,11 @@
         ctx.lineTo(w / 2 + 200, 440);
         ctx.stroke();
 
-        // Tanggal & Tanda Tangan
         const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
         ctx.fillStyle = '#94a3b8';
         ctx.font = '500 13px "Plus Jakarta Sans", sans-serif';
         ctx.fillText(`Diterbitkan pada: ${dateStr}`, w / 2, 470);
 
-        // Kolom Tanda Tangan
         ctx.textAlign = 'left';
         ctx.fillText('Prof. Voxel', 160, 520);
         ctx.fillText('Mentor AI Teknologi Pendidikan', 160, 540);
@@ -2906,40 +3458,73 @@
     }
 
     // ========================================================================
-    // MODAL: WIZARD DESAIN PEMBELAJARAN ADDIE (DENGAN PRINT & MD DOWNLOAD)
+    // MODAL: WIZARD MODUL AJAR (STANDAR KURIKULUM MERDEKA & ADDIE)
     // ========================================================================
     function AddieProjectWizardModal({ onClose, onSaveProject }) {
+      const [curFormat, setCurFormat] = useState('merdeka'); // 'merdeka' | 'addie'
       const [title, setTitle] = useState('');
       const [audience, setAudience] = useState('');
       const [objective, setObjective] = useState('');
+      const [profilPancasila, setProfilPancasila] = useState('Bernalar Kritis, Kreatif, dan Gotong Royong');
       const [mediaChoice, setMediaChoice] = useState('Video Microlearning + Kuis Interaktif');
       const [evaluation, setEvaluation] = useState('Pre-test & Post-test diagnostik formatif');
 
-      const generateDocText = () => `============================================================
+      const generateDocText = () => {
+        if (curFormat === 'merdeka') {
+          return `============================================================
+MODUL AJAR KURIKULUM MERDEKA
+EDTECH WORLD LEARNING DESIGN DOCUMENT
+============================================================
+INFORMASI UMUM:
+• Judul Modul / Topik : ${title}
+• Sasaran Peserta Didik: ${audience}
+• Profil Pelajar Pancasila: ${profilPancasila}
+
+KOMPONEN INTI:
+1. CAPAIAN PEMBELAJARAN (CP) & TUJUAN (ATP):
+   ${objective}
+
+2. PEMAHAMAN BERMAKNA & PERTANYAAN PEMANTIK:
+   Bagaimana media pembelajaran yang efektif memecahkan hambatan belajar siswa?
+
+3. MEDIA & MODEL PEMBELAJARAN (ASSURE / ADDIE):
+   Media: ${mediaChoice}
+   Model: Blended Learning & Problem-Based Learning
+
+4. RENCANA ASESMEN:
+   ${evaluation}
+
+Dibuat otomatis via EdTech World Modul Ajar Wizard
+Tanggal: ${new Date().toLocaleDateString('id-ID')}
+============================================================`;
+        } else {
+          return `============================================================
 RANCANGAN MODEL PEMBELAJARAN ADDIE
 EDTECH WORLD LEARNING DESIGN DOCUMENT
 ============================================================
 Judul Modul/Materi : ${title}
 Sasaran Peserta    : ${audience}
 
-1. TAHAP ANALYSIS (Analisis Kebutuhan & Peserta):
+1. TAHAP ANALYSIS:
    ${audience}
 
 2. TAHAP DESIGN (Tujuan Pembelajaran Format ABCD):
    ${objective}
 
-3. TAHAP DEVELOPMENT (Pemilihan Media Model ASSURE):
-   Media yang Digunakan: ${mediaChoice}
+3. TAHAP DEVELOPMENT (Media Model ASSURE):
+   ${mediaChoice}
 
-4. TAHAP IMPLEMENTATION (Langkah Pelaksanaan):
+4. TAHAP IMPLEMENTATION:
    Pembelajaran berbasis blended learning dengan simulasi interaktif.
 
-5. TAHAP EVALUATION (Asesmen Ketercapaian):
+5. TAHAP EVALUATION:
    ${evaluation}
 
 Dibuat otomatis via EdTech World Wizard
 Tanggal: ${new Date().toLocaleDateString('id-ID')}
 ============================================================`;
+        }
+      };
 
       const handleDownloadTxt = () => {
         if (!title.trim()) return;
@@ -2947,7 +3532,7 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Rancangan_ADDIE_${title.replace(/\s+/g, '_')}.txt`;
+        a.download = `Modul_Ajar_${title.replace(/\s+/g, '_')}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -2957,34 +3542,29 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
 
       const handleDownloadMd = () => {
         if (!title.trim()) return;
-        const mdText = `# Rancangan Pembelajaran Model ADDIE
+        const mdText = `# ${curFormat === 'merdeka' ? 'Modul Ajar Kurikulum Merdeka' : 'Rancangan Model ADDIE'}
 ## ${title}
 
 * **Sasaran Peserta:** ${audience}
+* **Profil Pelajar Pancasila:** ${profilPancasila}
 * **Tanggal:** ${new Date().toLocaleDateString('id-ID')}
 
 ---
 
-### 1. Analysis (Analisis Kebutuhan)
-${audience}
-
-### 2. Design (Tujuan Pembelajaran ABCD)
+### 1. Tujuan Pembelajaran (Capaian Pembelajaran)
 ${objective}
 
-### 3. Development (Media Terpilih)
+### 2. Media Pembelajaran Terpilih
 * **Media:** ${mediaChoice}
 
-### 4. Implementation (Strategi Penerapan)
-Blended Learning dengan simulasi interaktif di kelas dan penugasan mandiri.
-
-### 5. Evaluation (Asesmen)
+### 3. Rencana Asesmen
 ${evaluation}
 `;
         const blob = new Blob([mdText], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Rancangan_ADDIE_${title.replace(/\s+/g, '_')}.md`;
+        a.download = `Modul_Ajar_${title.replace(/\s+/g, '_')}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -2998,7 +3578,7 @@ ${evaluation}
         printWindow.document.write(`
           <html>
             <head>
-              <title>Rancangan ADDIE - ${title}</title>
+              <title>${title} - Modul Ajar</title>
               <style>
                 body { font-family: sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
                 h1 { border-bottom: 2px solid #0f172a; padding-bottom: 8px; color: #0f172a; }
@@ -3007,15 +3587,15 @@ ${evaluation}
               </style>
             </head>
             <body>
-              <h1>Rancangan Pembelajaran Model ADDIE</h1>
+              <h1>${curFormat === 'merdeka' ? 'Modul Ajar Kurikulum Merdeka' : 'Rancangan Model ADDIE'}</h1>
               <p><strong>Judul Modul:</strong> ${title} | <strong>Tanggal:</strong> ${new Date().toLocaleDateString('id-ID')}</p>
-              <h3>1. Analysis (Analisis Peserta Didik)</h3>
-              <div class="box">${audience}</div>
-              <h3>2. Design (Tujuan Pembelajaran Format ABCD)</h3>
+              <h3>1. Sasaran Peserta & Profil Pelajar Pancasila</h3>
+              <div class="box">${audience} | ${profilPancasila}</div>
+              <h3>2. Capaian & Tujuan Pembelajaran</h3>
               <div class="box">${objective}</div>
-              <h3>3. Development (Media Pembelajaran)</h3>
+              <h3>3. Media Pembelajaran</h3>
               <div class="box">${mediaChoice}</div>
-              <h3>4. Implementation & Evaluation</h3>
+              <h3>4. Rencana Asesmen</h3>
               <div class="box">${evaluation}</div>
             </body>
           </html>
@@ -3030,9 +3610,25 @@ ${evaluation}
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[88vh] flex flex-col">
             <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
-              <h2 className="font-extrabold text-sm">Penyusun Modul Ajar ADDIE</h2>
+              <h2 className="font-extrabold text-sm">Penyusun Modul Ajar & RPP</h2>
               <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
                 <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* TAB FORMAT MODUL */}
+            <div className="flex border-b px-6 pt-2 bg-slate-50 gap-4 text-xs font-bold">
+              <button
+                onClick={() => setCurFormat('merdeka')}
+                className={`py-2 border-b-2 cursor-pointer ${curFormat === 'merdeka' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'}`}
+              >
+                🇮🇩 Standar Kurikulum Merdeka
+              </button>
+              <button
+                onClick={() => setCurFormat('addie')}
+                className={`py-2 border-b-2 cursor-pointer ${curFormat === 'addie' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500'}`}
+              >
+                📐 Format Standar ADDIE
               </button>
             </div>
 
@@ -3049,7 +3645,7 @@ ${evaluation}
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Fase Analysis (Karakteristik Siswa)</label>
+                <label className="font-bold text-slate-700 block mb-1">Sasaran Peserta Didik (Analysis)</label>
                 <textarea
                   rows={2}
                   placeholder="Siswa SMP kelas 8, memiliki gaya belajar visual..."
@@ -3059,11 +3655,23 @@ ${evaluation}
                 />
               </div>
 
+              {curFormat === 'merdeka' && (
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Dimensi Profil Pelajar Pancasila</label>
+                  <input
+                    type="text"
+                    value={profilPancasila}
+                    onChange={(e) => setProfilPancasila(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-semibold text-slate-800"
+                  />
+                </div>
+              )}
+
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Fase Design (Tujuan Pembelajaran ABCD)</label>
+                <label className="font-bold text-slate-700 block mb-1">Tujuan Pembelajaran (Format ABCD / Capaian Pembelajaran)</label>
                 <textarea
                   rows={2}
-                  placeholder="Setelah menonton video, siswa mampu menjelaskan 3 prinsip Mayer dengan benar..."
+                  placeholder="Setelah mempelajari modul, siswa mampu mengoperasikan..."
                   value={objective}
                   onChange={(e) => setObjective(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-slate-50 border border-slate-200"
@@ -3071,7 +3679,7 @@ ${evaluation}
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Fase Development (Media Terpilih)</label>
+                <label className="font-bold text-slate-700 block mb-1">Pemilihan Media Pembelajaran</label>
                 <select
                   value={mediaChoice}
                   onChange={(e) => setMediaChoice(e.target.value)}
@@ -3080,6 +3688,7 @@ ${evaluation}
                   <option value="Video Microlearning + Kuis Interaktif">Video Microlearning + Kuis Interaktif</option>
                   <option value="Infografis Cetak + QR Code Audio">Infografis Cetak + QR Code Audio</option>
                   <option value="Simulasi Virtual Lab 3D">Simulasi Virtual Lab 3D</option>
+                  <option value="Modul Digital Flipbook Interaktif">Modul Digital Flipbook Interaktif</option>
                 </select>
               </div>
 
@@ -3226,12 +3835,25 @@ ${evaluation}
     }
 
     // ========================================================================
-    // MODAL: AI MENTOR PROF. VOXEL
+    // MODAL: AI MENTOR PROF. VOXEL DENGAN SUARA NARATOR ASLI
     // ========================================================================
     function ProfVoxelMentorModal({ onClose }) {
       const [selectedQ, setSelectedQ] = useState(PROF_VOXEL_KNOWLEDGE[0]);
       const [customQ, setCustomQ] = useState('');
       const [aiAnswer, setAiAnswer] = useState(null);
+      const [isSpeaking, setIsSpeaking] = useState(false);
+
+      const activeText = aiAnswer || selectedQ.answer;
+
+      const handleSpeech = () => {
+        if (isSpeaking) {
+          speechHelper.stop();
+          setIsSpeaking(false);
+        } else {
+          speechHelper.speak(activeText, () => setIsSpeaking(false));
+          setIsSpeaking(true);
+        }
+      };
 
       const handleAskCustom = (e) => {
         e.preventDefault();
@@ -3267,7 +3889,7 @@ ${evaluation}
                   <span className="text-[10px] text-indigo-200">Mentor AI Teknologi Pendidikan</span>
                 </div>
               </div>
-              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+              <button onClick={() => { speechHelper.stop(); onClose(); }} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
                 <Icon name="X" className="w-4 h-4" />
               </button>
             </div>
@@ -3278,6 +3900,8 @@ ${evaluation}
                   <button
                     key={idx}
                     onClick={() => {
+                      speechHelper.stop();
+                      setIsSpeaking(false);
                       setSelectedQ(item);
                       setAiAnswer(null);
                     }}
@@ -3290,7 +3914,6 @@ ${evaluation}
                 ))}
               </div>
 
-              {/* TANYA MANDIRI KE PROF. VOXEL */}
               <form onSubmit={handleAskCustom} className="flex gap-2">
                 <input
                   type="text"
@@ -3305,16 +3928,24 @@ ${evaluation}
               </form>
 
               <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
-                <div className="font-bold text-indigo-900 text-sm">
-                  ❓ {aiAnswer ? customQ : selectedQ.question}
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-indigo-900 text-sm">
+                    ❓ {aiAnswer ? customQ : selectedQ.question}
+                  </div>
+                  <button
+                    onClick={handleSpeech}
+                    className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <span>{isSpeaking ? '⏹️ Berhenti' : '🔊 Dengar Suara'}</span>
+                  </button>
                 </div>
                 <p className="text-slate-700 leading-relaxed pt-2 border-t border-indigo-200">
-                  {aiAnswer || selectedQ.answer}
+                  {activeText}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
-                💡 <strong>Tips dari Prof. Voxel:</strong> Terapkan konsep ini ke dalam perancangan media interaktifmu di tab <em>Desain ADDIE</em> untuk memanen XP lebih banyak!
+                💡 <strong>Tips dari Prof. Voxel:</strong> Terapkan konsep ini ke dalam perancangan media interaktifmu di tab <em>Modul Ajar</em> untuk memanen XP lebih banyak!
               </div>
             </div>
           </div>
@@ -3323,7 +3954,7 @@ ${evaluation}
     }
 
     // ========================================================================
-    // MODAL: BOTOL HANYUT
+    // MODAL: BOTOL HANYUT DENGAN SUARA NARASI TOKOH
     // ========================================================================
     function BottleMessageModal({ bottle, onClaim, onClose }) {
       const [pickedOpt, setPickedOpt] = useState(null);
@@ -3334,6 +3965,10 @@ ${evaluation}
         if (pickedOpt === bottle.ans) onClaim();
       };
 
+      const handleSpeakQuote = () => {
+        speechHelper.speak(`${bottle.quote}. Kata ${bottle.author}`);
+      };
+
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4">
@@ -3342,14 +3977,19 @@ ${evaluation}
                 <span className="text-xl">🍾</span>
                 <h3 className="font-extrabold text-sm">Pesan Botol Hanyut dari Lautan</h3>
               </div>
-              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={() => { speechHelper.stop(); onClose(); }} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
                 <Icon name="X" className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-950 text-xs italic leading-relaxed">
-              “{bottle.quote}”
-              <span className="block not-italic font-bold text-amber-800 mt-2">— {bottle.author}</span>
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-950 text-xs italic leading-relaxed space-y-2">
+              <div className="flex justify-between items-start">
+                <span>“{bottle.quote}”</span>
+                <button onClick={handleSpeakQuote} title="Dengarkan Kutipan" className="p-1 rounded bg-amber-200 hover:bg-amber-300 cursor-pointer shrink-0">
+                  🔊
+                </button>
+              </div>
+              <span className="block not-italic font-bold text-amber-800">— {bottle.author}</span>
             </div>
 
             <div className="space-y-2 text-xs">
@@ -3386,9 +4026,11 @@ ${evaluation}
     }
 
     // ========================================================================
-    // MODAL: PASPOR & KUSTOMISASI LAYAR KAPAL
+    // MODAL: PASPOR & KARTU DIGITAL MAHASISWA DENGAN QR CODE
     // ========================================================================
     function PasporModal({ playerName, setPlayerName, passportId, dayStreak, xp, levelNumber, citizens, islands, sailColor, setSailColor, onOpenCertificate, onClose }) {
+      const qrCanvasRef = useRef(null);
+
       const sailColors = [
         { name: 'Zamrud', code: '#10b981' },
         { name: 'Emas', code: '#f59e0b' },
@@ -3397,21 +4039,72 @@ ${evaluation}
         { name: 'Cyber', code: '#a855f7' }
       ];
 
+      // Gambar QR Code Otomatis di Canvas Kecil
+      useEffect(() => {
+        const cvs = qrCanvasRef.current;
+        if (!cvs) return;
+        const ctx = cvs.getContext('2d');
+        const size = cvs.width;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#0f172a';
+
+        // Pola QR Code Simbolis Stylized
+        const matrix = [
+          [1,1,1,1,1,0,1,1,1,1,1],
+          [1,0,0,0,1,0,1,0,0,0,1],
+          [1,0,1,0,1,0,1,0,1,0,1],
+          [1,0,0,0,1,0,1,0,0,0,1],
+          [1,1,1,1,1,0,1,1,1,1,1],
+          [0,0,0,0,0,1,0,0,0,0,0],
+          [1,0,1,1,0,1,1,0,1,1,1],
+          [1,1,1,1,1,0,1,0,1,0,1],
+          [1,0,0,0,1,0,1,1,0,1,1],
+          [1,0,1,0,1,0,0,1,1,0,1],
+          [1,1,1,1,1,1,1,0,1,1,1]
+        ];
+        const cell = size / matrix.length;
+        for (let r = 0; r < matrix.length; r++) {
+          for (let c = 0; c < matrix[r].length; c++) {
+            if (matrix[r][c]) {
+              ctx.fillRect(c * cell, r * cell, cell, cell);
+            }
+          }
+        }
+      }, []);
+
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex items-center justify-between">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Icon name="IdCard" className="w-5 h-5 text-amber-300" />
-                <h2 className="font-extrabold text-sm uppercase">Paspor Warga Tekpend</h2>
+                <h2 className="font-extrabold text-sm uppercase">Paspor & Kartu Mahasiswa</h2>
               </div>
               <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
                 <Icon name="X" className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-6 space-y-4 text-xs">
+
+            <div className="p-6 overflow-y-auto space-y-4 text-xs">
+              {/* KARTU IDENTITAS DIGITAL DENGAN QR CODE */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-xl border border-slate-700 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[9px] font-extrabold tracking-widest text-emerald-400 uppercase">TEKNOLOGI PENDIDIKAN</span>
+                    <h3 className="font-extrabold text-sm text-white">{playerName.toUpperCase()}</h3>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">{passportId} • KELAS TP-2026</div>
+                  </div>
+                  <canvas ref={qrCanvasRef} width={50} height={50} className="rounded-lg p-1 bg-white shadow-sm" />
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-slate-400 pt-2 border-t border-slate-700">
+                  <span>Status: <strong>Eksplorator Aktif</strong></span>
+                  <span className="text-amber-400 font-bold">Level {levelNumber} ({xp} XP)</span>
+                </div>
+              </div>
+
               <div>
-                <label className="text-slate-500 font-bold block mb-1">Nama Mahasiswa / Penjelajah</label>
+                <label className="text-slate-500 font-bold block mb-1">Ubah Nama Mahasiswa / Panggilan</label>
                 <input
                   type="text"
                   value={playerName}
@@ -3423,7 +4116,7 @@ ${evaluation}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200">
                   <div className="font-extrabold text-base text-amber-700">Hari {dayStreak}</div>
-                  <div className="text-[10px] text-amber-900/70">Streak</div>
+                  <div className="text-[10px] text-amber-900/70">Streak Belajar</div>
                 </div>
                 <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-200">
                   <div className="font-extrabold text-base text-indigo-700">Lv.{levelNumber}</div>
@@ -3530,7 +4223,6 @@ ${evaluation}
             </div>
             <div className="text-6xl font-mono font-extrabold text-emerald-400 py-3">{mins}:{secs}</div>
 
-            {/* TOGGLE AMBIENCE HUJAN SYNTH */}
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => setRainSoundOn(!rainSoundOn)}
@@ -3588,12 +4280,12 @@ ${evaluation}
     // ========================================================================
     // MODAL: MENU LENGKAP & RESET DATA
     // ========================================================================
-    function MenuModal({ onResetProgress, onOpenFeature, onClose }) {
+    function MenuModal({ onResetProgress, onOpenFeature, onStartTour, onClose }) {
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
-              <h2 className="font-bold text-sm">Pusat Fitur EdTech World Ultimate</h2>
+              <h2 className="font-bold text-sm">Pusat Fitur EdTech World Grandmaster</h2>
               <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
                 <Icon name="X" className="w-4 h-4" />
               </button>
@@ -3605,6 +4297,24 @@ ${evaluation}
 
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
+                  onClick={() => { onClose(); onStartTour(); }}
+                  className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100 font-bold text-left cursor-pointer text-emerald-900"
+                >
+                  🎬 Tur Sinematik
+                </button>
+                <button
+                  onClick={() => { onClose(); onOpenFeature('bloom'); }}
+                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                >
+                  🏛️ Piramida Bloom
+                </button>
+                <button
+                  onClick={() => { onClose(); onOpenFeature('assureMatcher'); }}
+                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                >
+                  🎯 Simulasi ASSURE
+                </button>
+                <button
                   onClick={() => { onClose(); onOpenFeature('flashcards'); }}
                   className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
                 >
@@ -3615,12 +4325,6 @@ ${evaluation}
                   className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
                 >
                   ⚙️ Pemilah CLT
-                </button>
-                <button
-                  onClick={() => { onClose(); onOpenFeature('alun'); }}
-                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
-                >
-                  💬 Alun-Alun Refleksi
                 </button>
                 <button
                   onClick={() => { onClose(); onOpenFeature('certificate'); }}
