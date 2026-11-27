@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>EdTech World — Dunia Teknologi Pendidikan (Ultimate Edition)</title>
+  <title>EdTech World — Dunia Teknologi Pendidikan (Ultimate Master Edition)</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -23,7 +23,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
 
   <!-- React 18 & Babel Standalone -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -78,13 +78,15 @@
     const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
     // ========================================================================
-    // KOMPONEN IKON LUCIDE
+    // KOMPONEN IKON LUCIDE (ROBUST MULTI-CASE MATCHING)
     // ========================================================================
     function Icon({ name, className = 'w-4 h-4', ariaHidden = true }) {
       const spanRef = useRef(null);
       useEffect(() => {
-        if (!spanRef.current || !window.lucide) return;
-        const iconDef = window.lucide.icons[name];
+        if (!spanRef.current || !window.lucide || !window.lucide.icons) return;
+        const iconDef = window.lucide.icons[name] ||
+                        window.lucide.icons[name.toLowerCase()] ||
+                        window.lucide.icons[name.charAt(0).toUpperCase() + name.slice(1)];
         if (!iconDef) return;
         const svgElement = window.lucide.createElement(iconDef);
         svgElement.setAttribute('class', className);
@@ -96,11 +98,14 @@
     }
 
     // ========================================================================
-    // SOUND EFFECTS (WEB AUDIO API - 100% OFFLINE)
+    // SOUND & SYNTHESIZED AMBIENCE (WEB AUDIO API - 100% OFFLINE ZERO DEPENDENCY)
     // ========================================================================
     const soundManager = {
       muted: false,
       ctx: null,
+      rainSource: null,
+      rainGain: null,
+
       getCtx() {
         if (!this.ctx) {
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -109,6 +114,7 @@
         if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
         return this.ctx;
       },
+
       playClick() {
         if (this.muted) return;
         try {
@@ -127,6 +133,7 @@
           osc.stop(ctx.currentTime + 0.09);
         } catch (_) {}
       },
+
       playCoin() {
         if (this.muted) return;
         try {
@@ -146,6 +153,7 @@
           });
         } catch (_) {}
       },
+
       playVictory() {
         if (this.muted) return;
         try {
@@ -166,6 +174,7 @@
           });
         } catch (_) {}
       },
+
       playThunder() {
         if (this.muted) return;
         try {
@@ -184,6 +193,7 @@
           osc.stop(ctx.currentTime + 0.75);
         } catch (_) {}
       },
+
       playBuild() {
         if (this.muted) return;
         try {
@@ -202,13 +212,59 @@
             osc.stop(ctx.currentTime + i * 0.08 + 0.22);
           });
         } catch (_) {}
+      },
+
+      // Ambient Rain Synthesizer (White Noise Buffer + Lowpass Filter)
+      startRain() {
+        if (this.muted || this.rainSource) return;
+        try {
+          const ctx = this.getCtx();
+          if (!ctx) return;
+          const bufferSize = ctx.sampleRate * 2;
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          let lastOut = 0.0;
+          for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            lastOut = (lastOut + 0.02 * white) / 1.02;
+            data[i] = lastOut * 3.5;
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = buffer;
+          noise.loop = true;
+
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 1100;
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+
+          noise.start();
+          this.rainSource = noise;
+          this.rainGain = gain;
+        } catch (_) {}
+      },
+
+      stopRain() {
+        try {
+          if (this.rainSource) {
+            this.rainSource.stop();
+            this.rainSource.disconnect();
+            this.rainSource = null;
+          }
+        } catch (_) {}
       }
     };
 
     // ========================================================================
-    // DATA MASTER: KAWASAN, SKILL TREE, BOTTLES, & KUIS
+    // DATA MASTER: 10 KAWASAN EDTECH LENGKAP
     // ========================================================================
-    const STORAGE_KEY = 'edtech_world_save_v3';
+    const STORAGE_KEY = 'edtech_world_save_v4';
 
     const getTodayKey = () => {
       const d = new Date();
@@ -369,7 +425,7 @@
         radius: 3.5,
         unlocked: true,
         prosperity: 70,
-        facilities: ['lighthouse'],
+        facilities: ['library'],
         summary: 'Penguasaan empat pilar literasi digital (Skills, Culture, Ethics, Safety) serta etika pemanfaatan AI generatif.',
         concepts: [
           'Empat Pilar Kominfo: Digital Skills, Digital Culture, Digital Ethics, dan Digital Safety.',
@@ -380,6 +436,65 @@
             q: 'Tindakan memverifikasi kredibilitas penulis dan tahun terbit sumber digital termasuk pilar...',
             opts: ['Digital Safety', 'Digital Ethics & Critical Information', 'Hardware Maintenance'],
             ans: 1
+          }
+        ]
+      },
+      // KAWASAN BARU 1: AI & PEMBELAJARAN ADAPTIF
+      {
+        id: 'isl-ai',
+        name: 'Pulau Inovasi AI',
+        subtitle: 'TPACK & Model SAMR',
+        course: 'Teknologi AI & Pembelajaran Adaptif',
+        biome: 'hub',
+        gridX: -6,
+        gridY: 0,
+        radius: 3.6,
+        unlocked: true,
+        prosperity: 75,
+        facilities: ['lab'],
+        summary: 'Integrasi harmonis antara Content, Pedagogy, dan Technology (TPACK), hierarki adopsi teknologi SAMR, serta prompt engineering pendidikan.',
+        concepts: [
+          'Model TPACK (Mishra & Koehler): Guru ideal menguasai irisan antara materi keilmuan, pedagogi pengajaran, dan alat teknologi.',
+          'Model SAMR (Puentedura): Transformasi belajar dari Substitusi, Augmentasi, Modifikasi, hingga Redefinisi tugas baru.',
+          'Adaptive Learning: AI menganalisis kesulitan belajar siswa secara real-time dan memberikan jalur belajar personal.'
+        ],
+        quizzes: [
+          {
+            q: 'Tingkatan tertinggi dalam model SAMR ketika teknologi memungkinkan penciptaan tugas baru yang sebelumnya tidak terbayangkan adalah...',
+            opts: ['Redefinition', 'Modification', 'Augmentation'],
+            ans: 0
+          },
+          {
+            q: 'Konsep yang memadukan pemahaman materi bidang studi dengan cara mengajarkannya menggunakan teknologi disebut...',
+            opts: ['TPACK', 'ADDIE', 'ASSURE'],
+            ans: 0
+          }
+        ]
+      },
+      // KAWASAN BARU 2: GAMIFIKASI & IMERSI
+      {
+        id: 'isl-gamifikasi',
+        name: 'Lembah Gamifikasi',
+        subtitle: 'Octalysis & Teori Alir',
+        course: 'Desain Gamifikasi & Simulasi',
+        biome: 'meadow',
+        gridX: 6,
+        gridY: 0,
+        radius: 3.6,
+        unlocked: true,
+        prosperity: 68,
+        facilities: ['library'],
+        summary: 'Pemanfaatan mekanisme permainan (Octalysis 8 Core Drives, Elemen PBL, Flow State) untuk mendongkrak motivasi intrinsik dan retensi belajar.',
+        concepts: [
+          'Octalysis Framework (Yu-kai Chou): 8 pendorong psikologis perilaku manusia (Epic Meaning, Accomplishment, Ownership, dll).',
+          'Flow Theory (Csikszentmihalyi): Kondisi fokus total saat tingkat tantangan selaras dengan tingkat keahlian siswa.',
+          'Gamifikasi vs GBL: Gamifikasi menggunakan elemen game dalam situasi non-game; Game-Based Learning menggunakan game penuh sebagai media.'
+        ],
+        quizzes: [
+          {
+            q: 'Kondisi fokus tinggi di mana siswa sangat hanyut dalam belajar karena seimbangnya tantangan dan keterampilan disebut...',
+            opts: ['Flow State (Mihaly Csikszentmihalyi)', 'Cognitive Overload', 'Conditioning'],
+            ans: 0
           }
         ]
       },
@@ -437,7 +552,7 @@
       }
     ];
 
-    // Data Pohon Keterampilan (Skill Tree)
+    // Data Pohon Keterampilan
     const INITIAL_SKILL_TREE = [
       { id: 'sk-1', branch: 'Desain Instruksional', title: 'Fondasi AECT 2008', xpReq: 0, unlocked: true, desc: 'Memahami definisi, kawasan, dan kode etik teknologi pendidikan.' },
       { id: 'sk-2', branch: 'Desain Instruksional', title: 'Arsitek ADDIE', xpReq: 80, unlocked: false, desc: 'Merancang siklus ADDIE utuh dari analisis audiens hingga evaluasi sumatif.' },
@@ -488,6 +603,18 @@
         ans: 0,
         rewardXp: 30,
         claimed: false
+      },
+      {
+        id: 'bot-4',
+        gridX: -4.2,
+        gridY: 2.2,
+        author: 'Edgar Dale (Cone of Experience)',
+        quote: 'People generally remember 10% of what they read, 20% of what they hear, 30% of what they see, and 90% of what they do.',
+        question: 'Dalam Kerucut Pengalaman Edgar Dale, tingkat pengalaman yang paling konkret dan memiliki retensi tertinggi terletak pada...',
+        options: ['Pengalaman Langsung Bertujuan (Direct Purposeful Experience)', 'Simbol Verbal / Teks Abstrak', 'Rekaman Audio'],
+        ans: 0,
+        rewardXp: 35,
+        claimed: false
       }
     ];
 
@@ -516,6 +643,130 @@
         topic: 'Vygotsky & AI',
         question: 'Bagaimana konsep ZPD Vygotsky diterapkan pada kecerdasan buatan (AI) edukasi?',
         answer: 'AI edukatif berfungsi sebagai "Scaffolding" dinamis. Ketika siswa kesulitan, AI memberikan petunjuk langkah demi langkah (hints), bukan langsung memberikan kunci jawaban akhir. Setelah siswa paham, bantuan AI dikurangi secara bertahap agar kemandirian belajar terbentuk.'
+      },
+      {
+        topic: 'TPACK Framework',
+        question: 'Mengapa guru modern wajib menguasai kerangka TPACK?',
+        answer: 'Karena teknologi canggih tanpa pedagogi yang tepat hanya akan menjadi pajangan digital. TPACK memastikan teknologi dipakai untuk memfasilitasi metode belajar yang tepat bagi materi pelajaran tertentu secara terpadu.'
+      },
+      {
+        topic: 'Octalysis Gamifikasi',
+        question: 'Bagaimana cara mendesain gamifikasi pembelajaran yang bermakna?',
+        answer: 'Gunakan prinsip White Hat Gamification dari Octalysis: berikan siswa "Epic Meaning" (misi menyelamatkan peradaban belajar), "Accomplishment" (kenaikan level dan lencana kemahiran), serta "Empowerment" (kebebasan memilih jalur belajar sendiri).'
+      }
+    ];
+
+    // Bank Data Flashcards (Spaced Repetition)
+    const FLASHCARDS_DATA = [
+      {
+        id: 'fc-1',
+        category: 'Kerangka Kerja',
+        title: 'Model TPACK',
+        front: 'Apa itu TPACK dan apa 3 komponen utamanya?',
+        back: 'Technological Pedagogical Content Knowledge: Kerangka yang mengintegrasikan Konten (materi ajar), Pedagogi (metode mengajar), dan Teknologi agar guru dapat merancang pembelajaran berbasis teknologi yang bermakna.'
+      },
+      {
+        id: 'fc-2',
+        category: 'Adopsi Teknologi',
+        title: 'Model SAMR',
+        front: 'Sebutkan 4 tingkatan dalam Model SAMR karya Ruben Puentedura!',
+        back: '1. Substitution (Teknologi hanya pengganti langsung tanpa perubahan fungsi).\n2. Augmentation (Pengganti dengan peningkatan fungsi).\n3. Modification (Pendesainan ulang tugas secara signifikan).\n4. Redefinition (Penciptaan tugas baru yang mustahil tanpa teknologi).'
+      },
+      {
+        id: 'fc-3',
+        category: 'Media Pembelajaran',
+        title: 'Kerucut Pengalaman Edgar Dale',
+        front: 'Apa inti ajaran dari Cone of Experience karya Edgar Dale?',
+        back: 'Semakin konkret pengalaman belajar (pengalaman langsung bertujuan di dasar kerucut), semakin tinggi retensi ingatan siswa dibandingkan lambang verbal/teks abstrak di puncak kerucut.'
+      },
+      {
+        id: 'fc-4',
+        category: 'Beban Kognitif',
+        title: '3 Jenis Cognitive Load (Sweller)',
+        front: 'Bedakan Intrinsic, Extraneous, dan Germane Cognitive Load!',
+        back: '• Intrinsic: Beban alami materi yang rumit.\n• Extraneous: Beban sia-sia akibat desain visual buruk/distraksi.\n• Germane: Beban produktif saat otak membangun skema pemahaman jangka panjang.'
+      },
+      {
+        id: 'fc-5',
+        category: 'Desain Instruksional',
+        title: 'Model ADDIE',
+        front: 'Jelaskan tahapan siklus 5 fase ADDIE!',
+        back: '• Analysis: Identifikasi kesenjangan & profil siswa.\n• Design: Penentuan tujuan & silabus.\n• Development: Pembuatan modul/media nyata.\n• Implementation: Penerapan di kelas.\n• Evaluation: Formatif & Sumatif.'
+      },
+      {
+        id: 'fc-6',
+        category: 'Desain Instruksional',
+        title: 'Model ASSURE',
+        front: 'Apa kepanjangan dan tujuan utama model ASSURE?',
+        back: 'Analyze learners, State standards, Select methods/media, Utilize materials, Require participation, Evaluate. Model prosedural bagi guru kelas dalam memilih dan mengoptimalkan media pembelajaran.'
+      },
+      {
+        id: 'fc-7',
+        category: 'Teori Belajar',
+        title: 'Vygotsky ZPD & Scaffolding',
+        front: 'Apa makna Zone of Proximal Development (ZPD)?',
+        back: 'Jarak antara kemampuan mandiri siswa dan potensi capaian jika dibimbing oleh pendidik atau teman sebaya yang lebih ahli (More Knowledgeable Other/MKO) melalui bantuan bertahap (Scaffolding).'
+      },
+      {
+        id: 'fc-8',
+        category: 'Teori Instruksional',
+        title: '9 Peristiwa Gagné',
+        front: 'Sebutkan 3 peristiwa awal dalam Nine Events of Instruction Gagné!',
+        back: '1. Gain Attention (Menarik perhatian).\n2. Inform Learners of Objectives (Menyampaikan tujuan belajar).\n3. Stimulate Recall of Prior Learning (Mengingat materi prasyarat).'
+      },
+      {
+        id: 'fc-9',
+        category: 'Evaluasi',
+        title: '4 Tingkat Kirkpatrick',
+        front: 'Sebutkan 4 level evaluasi program Donald Kirkpatrick!',
+        back: 'Level 1: Reaction (Kepuasan peserta)\nLevel 2: Learning (Peningkatan pengetahuan/skill)\nLevel 3: Behavior (Penerapan di dunia nyata/kerja)\nLevel 4: Results (Dampak organisasi/kinerja).'
+      },
+      {
+        id: 'fc-10',
+        category: 'Gamifikasi',
+        title: 'Octalysis Framework',
+        front: 'Apa itu Octalysis Framework oleh Yu-kai Chou?',
+        back: 'Model gamifikasi berbasis 8 penggerak psikologis manusia, membedakan motivasi White Hat (pemberdayaan & makna) dan Black Hat (urgensi, kelangkaan, dan ketakutan kehilangan).'
+      }
+    ];
+
+    // Data Skenario Mini-Game Pemilah Beban Kognitif
+    const SORTER_SCENARIOS = [
+      {
+        id: 1,
+        text: 'Rumus fisika kuantum dengan banyak variabel matriks yang saling tergantung',
+        type: 'intrinsic',
+        explanation: 'Ini adalah Intrinsic Load karena kesulitan tersebut inheren melekat pada kompleksitas materi kimia/fisika itu sendiri.'
+      },
+      {
+        id: 2,
+        text: 'Slide presentasi dipenuhi animasi teks berkedip dan musik pop latar keras yang tidak relevan',
+        type: 'extraneous',
+        explanation: 'Ini adalah Extraneous Load karena membebani memori kerja siswa akibat desain media yang buruk dan melanggar Coherence Principle Mayer.'
+      },
+      {
+        id: 3,
+        text: 'Siswa diminta membuat peta konsep dan analogi pribadi untuk menghubungkan konsep baru ke skema memori lama',
+        type: 'germane',
+        explanation: 'Ini adalah Germane Load karena merupakan beban mental yang produktif untuk membangun skema kognitif permanen.'
+      },
+      {
+        id: 4,
+        text: 'Modul ajar cetak dengan font terlalu kecil dan legenda gambar terpisah di halaman lampiran belakang',
+        type: 'extraneous',
+        explanation: 'Ini adalah Extraneous Load akibat pelanggaran prinsip Spatial Contiguity (jarak ruang yang terpisah).'
+      },
+      {
+        id: 5,
+        text: 'Tabel periodik unsur kimia dengan 118 nomor atom dan konfigurasi elektron',
+        type: 'intrinsic',
+        explanation: 'Ini adalah Intrinsic Load alami karena kuantitas elemen informasi yang harus diproses sekaligus tinggi.'
+      },
+      {
+        id: 6,
+        text: 'Simulasi interaktif dengan petunjuk bertahap (scaffolding) yang memandu siswa menemukan pola keteraturan data',
+        type: 'germane',
+        explanation: 'Ini adalah Germane Load karena memfasilitasi proses abstraksi dan pemahaman mendalam secara optimal.'
       }
     ];
 
@@ -525,22 +776,25 @@
       { id: 'q-3', title: 'Penyusunan GBPM & Storyboard ASSURE', islandId: 'isl-media', stage: 'Development', xpReward: 70, citizensReward: 140, estimatedMinutes: 60, completedMinutes: 25, done: false },
       { id: 'q-4', title: 'Matriks Perbandingan Teori Belajar', islandId: 'isl-snow', stage: 'Analysis', xpReward: 45, citizensReward: 80, estimatedMinutes: 30, completedMinutes: 0, done: false },
       { id: 'q-5', title: 'Audit Keamanan Akun & Cek Fakta Hoaks', islandId: 'isl-digital', stage: 'Implementation', xpReward: 40, citizensReward: 75, estimatedMinutes: 25, completedMinutes: 25, done: true },
-      { id: 'q-6', title: 'Rancang Instrumen 4 Level Kirkpatrick', islandId: 'isl-desert', stage: 'Evaluation', xpReward: 80, citizensReward: 160, estimatedMinutes: 45, completedMinutes: 0, done: false }
+      { id: 'q-6', title: 'Rancang Instrumen 4 Level Kirkpatrick', islandId: 'isl-desert', stage: 'Evaluation', xpReward: 80, citizensReward: 160, estimatedMinutes: 45, completedMinutes: 0, done: false },
+      { id: 'q-7', title: 'Rancang Rencana Pembelajaran Berbasis TPACK', islandId: 'isl-ai', stage: 'Design', xpReward: 65, citizensReward: 130, estimatedMinutes: 40, completedMinutes: 0, done: false },
+      { id: 'q-8', title: 'Desain Mekanisme Reward Octalysis', islandId: 'isl-gamifikasi', stage: 'Development', xpReward: 60, citizensReward: 110, estimatedMinutes: 35, completedMinutes: 0, done: false }
     ];
 
     const INITIAL_POLL = {
       id: 'poll-addie-1',
       question: 'Prioritas pengembangan media pembelajaran minggu ini?',
       options: [
-        { id: 'opt-1', label: 'Modul Interaktif & Kuis Adaptif', votes: 168 },
-        { id: 'opt-2', label: 'Video Microlearning 5 Menit', votes: 112 },
-        { id: 'opt-3', label: 'Simulasi Lab Virtual AR/VR', votes: 140 }
+        { id: 'opt-1', label: 'Modul Interaktif & Kuis Adaptif', votes: 172 },
+        { id: 'opt-2', label: 'Video Microlearning 5 Menit', votes: 118 },
+        { id: 'opt-3', label: 'Simulasi Lab Virtual AR/VR', votes: 145 }
       ]
     };
 
     const INITIAL_ALUN_ALUN = [
-      { id: 'msg-1', author: 'Rina_Tekpend24', badge: 'Arsitek ADDIE', island: 'Benua Desain Pesan', text: 'Baru saja membuka Perpustakaan Digital di Benua Desain Pesan! Sekarang kapalku berlayar otomatis antar pulau.', time: '5 menit lalu', likes: 16 },
-      { id: 'msg-2', author: 'Dimas_EdTech', badge: 'Penakluk Kognitif', island: 'Pulau Gunung Media', text: 'Tantangan Monster Beban Kognitif seru banget! Berhasil jawab 5 soal tanpa salah dalam 60 detik.', time: '18 menit lalu', likes: 28, devReply: 'Hebat, Dimas! Gelar Penakluk Beban Kognitif sudah tersemat di paspormu.' }
+      { id: 'msg-1', author: 'Rina_Tekpend24', badge: 'Arsitek ADDIE', island: 'Benua Desain Pesan', text: 'Baru saja membuka Perpustakaan Digital di Benua Desain Pesan! Sekarang kapalku berlayar otomatis antar pulau.', time: '5 menit lalu', likes: 18 },
+      { id: 'msg-2', author: 'Dimas_EdTech', badge: 'Penakluk Kognitif', island: 'Pulau Gunung Media', text: 'Tantangan Monster Beban Kognitif seru banget! Berhasil jawab 5 soal tanpa salah dalam 60 detik.', time: '18 menit lalu', likes: 31, devReply: 'Hebat, Dimas! Gelar Penakluk Beban Kognitif sudah tersemat di paspormu.' },
+      { id: 'msg-3', author: 'Bayu_Inovator', badge: 'Pakar TPACK', island: 'Pulau Inovasi AI', text: 'Materi SAMR dan TPACK di pulau baru membuka wawasan banget tentang cara integrasi teknologi yang tepat!', time: '1 jam lalu', likes: 14 }
     ];
 
     // ========================================================================
@@ -553,12 +807,13 @@
       camera,
       setCamera,
       pulseIslandId,
-      timeMode, // 'day' | 'sunset' | 'night' | 'storm' | 'aurora'
+      timeMode,
       burstTrigger,
       boatPos,
       setBoatPos,
       bottles,
-      onSelectBottle
+      onSelectBottle,
+      sailColor = '#10b981'
     }) {
       const canvasRef = useRef(null);
       const isDraggingRef = useRef(false);
@@ -567,10 +822,8 @@
       const hitboxesRef = useRef([]);
       const bottleHitboxesRef = useRef([]);
 
-      // Multi-touch Pinch Zoom
       const touchDistRef = useRef(null);
 
-      // Partikel Efek
       const snowflakesRef = useRef(
         Array.from({ length: 40 }, () => ({
           x: (Math.random() - 0.5) * 160,
@@ -615,7 +868,6 @@
         burstParticlesRef.current.push(...newParticles);
       }, [burstTrigger]);
 
-      // Gambar Balok Kubus Voxel
       const drawVoxelBlock = useCallback((ctx, sx, sy, tileW, tileH, height, topColor, leftColor, rightColor, isGlowing = false) => {
         const hw = tileW / 2;
         const hh = tileH / 2;
@@ -683,7 +935,6 @@
 
           const time = Date.now() * 0.0025;
 
-          // 1. GRADASI LAUTAN SESUAI CUACA
           const cx = rect.width / 2;
           const cy = rect.height / 2;
           const maxDim = Math.max(rect.width, rect.height) * 0.85;
@@ -702,7 +953,6 @@
             seaGrad.addColorStop(0.55, '#1e293b');
             seaGrad.addColorStop(1, '#0f172a');
           } else {
-            // Day
             seaGrad.addColorStop(0, '#38bdf8');
             seaGrad.addColorStop(0.55, '#0ea5e9');
             seaGrad.addColorStop(1, '#0284c7');
@@ -711,14 +961,12 @@
           ctx.fillStyle = seaGrad;
           ctx.fillRect(0, 0, rect.width, rect.height);
 
-          // Kilatan Petir acak saat badai
           if (timeMode === 'storm' && Math.random() < 0.015) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
             ctx.fillRect(0, 0, rect.width, rect.height);
             soundManager.playThunder();
           }
 
-          // Efek Tirai Cahaya Aurora Borealis
           if (timeMode === 'aurora') {
             ctx.save();
             for (let a = 0; a < 3; a++) {
@@ -737,7 +985,6 @@
             ctx.restore();
           }
 
-          // Bintang Malam
           if (timeMode === 'night' || timeMode === 'aurora') {
             ctx.fillStyle = '#ffffff';
             for (let i = 0; i < 45; i++) {
@@ -752,13 +999,11 @@
             ctx.globalAlpha = 1;
           }
 
-          // Kamera
           const camCenterX = rect.width / 2 + camera.x;
           const camCenterY = rect.height / 2 + camera.y;
           ctx.translate(camCenterX, camCenterY);
           ctx.scale(camera.zoom, camera.zoom);
 
-          // 2. KISI OMBAK & BUSA
           ctx.strokeStyle = timeMode === 'storm' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.15)';
           ctx.lineWidth = 1;
           const waveAmp = timeMode === 'storm' ? 4.5 : 2.5;
@@ -774,7 +1019,6 @@
             }
           }
 
-          // Awan Melayang
           const clouds = [
             { gx: -11, gy: -1, speed: 0.4 },
             { gx: 2, gy: -12, speed: 0.3 },
@@ -787,7 +1031,6 @@
             drawVoxelBlock(ctx, cp.x + drift, cp.y - 55, 58, 29, 14, cloudTopColor, 'rgba(100, 116, 139, 0.6)', 'rgba(71, 85, 105, 0.6)');
           });
 
-          // 3. KUMPULKAN DAN URUTKAN SELURUH VOXEL TILE
           const allTiles = [];
           const newHitboxes = [];
 
@@ -796,7 +1039,6 @@
             const centerScreen = isoToScreen(isl.gridX, isl.gridY);
             newHitboxes.push({ id: isl.id, x: centerScreen.x, y: centerScreen.y - 14, hitRadius: r * 26 });
 
-            // Busa Pantai
             const foamPulse = Math.sin(time * 2.5 + islIdx) * 2;
             ctx.beginPath();
             ctx.ellipse(centerScreen.x, centerScreen.y + 4, r * 22 + foamPulse, r * 11 + foamPulse * 0.5, 0, 0, Math.PI * 2);
@@ -843,6 +1085,11 @@
                   leftC = '#10b981';
                   rightC = '#059669';
                   blockH = isPeak ? 22 : 14;
+                } else if (isl.biome === 'meadow') {
+                  topC = isPeak ? '#a3e635' : '#84cc16';
+                  leftC = '#65a30d';
+                  rightC = '#4d7c0f';
+                  blockH = isPeak ? 20 : 13;
                 }
 
                 const hash = Math.abs(Math.sin(gx * 12.9898 + gy * 78.233) * 43758.5453) % 1;
@@ -868,7 +1115,6 @@
             }
           });
 
-          // Depth sort
           allTiles.sort((a, b) => a.depth - b.depth);
 
           allTiles.forEach((tile) => {
@@ -877,16 +1123,13 @@
             const isPulsing = tile.island.id === pulseIslandId;
             const bounce = isPulsing ? Math.abs(Math.sin(time * 4)) * 8 : 0;
 
-            // Dasar air dangkal
             ctx.beginPath();
             ctx.ellipse(p.x, p.y + tileH / 2, tileW * 0.56, tileH * 0.56, 0, 0, Math.PI * 2);
             ctx.fillStyle = isSelected ? 'rgba(255, 255, 255, 0.4)' : 'rgba(186, 230, 253, 0.35)';
             ctx.fill();
 
-            // Balok Tanah
             drawVoxelBlock(ctx, p.x, p.y - bounce, tileW, tileH, tile.blockH, tile.topC, tile.leftC, tile.rightC);
 
-            // Menara & Fasilitas yang dibangun pemain
             if (tile.isCenterTower) {
               const baseTop = p.y - tile.blockH - bounce;
               const isNight = timeMode === 'night' || timeMode === 'aurora';
@@ -897,19 +1140,16 @@
                 drawVoxelBlock(ctx, p.x, baseTop, 18, 9, 14, isNight ? '#fde047' : '#fef3c7', '#f59e0b', '#d97706', isNight);
               }
 
-              // Warga Voxel Mini (NPC)
               if (tile.island.unlocked) {
                 const walkCycle = Math.sin(time * 2 + tile.gx) * 8;
                 drawVoxelBlock(ctx, p.x + walkCycle, baseTop + 10, 8, 4, 8, '#3b82f6', '#2563eb', '#1d4ed8');
                 drawVoxelBlock(ctx, p.x + walkCycle, baseTop + 2, 10, 5, 3, '#0f172a', '#1e293b', '#0f172a');
               }
             } else if (tile.isEastSlot && (tile.island.facilities || []).includes('library')) {
-              // Bangunan Perpustakaan Voxel
               const baseTop = p.y - tile.blockH - bounce;
               drawVoxelBlock(ctx, p.x, baseTop, 16, 8, 12, '#38bdf8', '#0284c7', '#0369a1');
               drawVoxelBlock(ctx, p.x, baseTop - 12, 12, 6, 6, '#facc15', '#eab308', '#ca8a04');
             } else if (tile.isWestSlot && (tile.island.facilities || []).includes('lab')) {
-              // Bangunan Laboratorium Komputer
               const baseTop = p.y - tile.blockH - bounce;
               drawVoxelBlock(ctx, p.x, baseTop, 14, 7, 10, '#f1f5f9', '#cbd5e1', '#94a3b8');
               drawVoxelBlock(ctx, p.x, baseTop - 10, 8, 4, 10, '#10b981', '#059669', '#047857');
@@ -925,7 +1165,6 @@
             }
           });
 
-          // 4. KABUT MISTERI (FOG OF WAR) DI ATAS PULAU TERKUNCI
           islands.filter((isl) => !isl.unlocked).forEach((locked) => {
             const p = isoToScreen(locked.gridX, locked.gridY);
             for (let f = 0; f < 4; f++) {
@@ -940,7 +1179,6 @@
             }
           });
 
-          // 5. BOTOL HANYUT DI LAUTAN
           const newBottleHitboxes = [];
           bottles.forEach((bot) => {
             if (bot.claimed) return;
@@ -950,19 +1188,17 @@
 
             newBottleHitboxes.push({ id: bot.id, x: bp.x, y: botY, r: 20 });
 
-            // Riak air botol
             ctx.beginPath();
             ctx.arc(bp.x, botY + 4, 6 + Math.abs(bob), 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.fill();
 
-            // Badan Botol Kaca Kering & Gabus
             drawVoxelBlock(ctx, bp.x, botY, 12, 6, 8, 'rgba(56, 189, 248, 0.85)', 'rgba(14, 165, 233, 0.85)', 'rgba(2, 132, 199, 0.85)', true);
             drawVoxelBlock(ctx, bp.x, botY - 8, 4, 2, 4, '#ca8a04', '#a16207', '#713f12');
           });
           bottleHitboxesRef.current = newBottleHitboxes;
 
-          // 6. KAPAL LAYAR PEMAIN
+          // KAPAL LAYAR PEMAIN (DENGAN KUSTOMISASI WARNA LAYAR)
           const targetIsland = islands.find((i) => i.id === selectedIslandId) || islands[0];
           const targetIslandPos = isoToScreen(targetIsland.gridX + 1.8, targetIsland.gridY + 1.8);
           const curBx = boatPos.x + (targetIslandPos.x - boatPos.x) * 0.04;
@@ -977,9 +1213,9 @@
           drawVoxelBlock(ctx, curBx, curBy, 18, 9, 7, '#b45309', '#92400e', '#78350f');
           drawVoxelBlock(ctx, curBx, curBy - 7, 4, 2, 14, '#64748b', '#475569', '#334155');
           drawVoxelBlock(ctx, curBx + 3, curBy - 15, 12, 6, 8, '#ffffff', '#f1f5f9', '#e2e8f0');
-          drawVoxelBlock(ctx, curBx - 3, curBy - 21, 6, 3, 3, '#10b981', '#059669', '#047857');
+          // Bendera Layar Kustom Pemain
+          drawVoxelBlock(ctx, curBx - 3, curBy - 21, 6, 3, 3, sailColor, sailColor, sailColor);
 
-          // 7. PARTIKEL SALJU, KUNANG-KUNANG, HUJAN BADAI & BURST
           if (timeMode === 'storm') {
             ctx.strokeStyle = 'rgba(226, 232, 240, 0.55)';
             ctx.lineWidth = 1.5;
@@ -1034,7 +1270,7 @@
             burstParticlesRef.current = burstParticlesRef.current.filter((p) => p.alpha > 0);
           }
 
-          // 8. LABEL PULAU
+          // Label Pulau
           islands.forEach((isl) => {
             const p = isoToScreen(isl.gridX, isl.gridY);
             const labelY = p.y - 48;
@@ -1080,7 +1316,7 @@
 
         animationFrameId = requestAnimationFrame(render);
         return () => cancelAnimationFrame(animationFrameId);
-      }, [islands, selectedIslandId, camera, pulseIslandId, timeMode, boatPos, setBoatPos, bottles, drawVoxelBlock]);
+      }, [islands, selectedIslandId, camera, pulseIslandId, timeMode, boatPos, setBoatPos, bottles, drawVoxelBlock, sailColor]);
 
       // MOUSE / TOUCH GESTURES
       const handlePointerDown = (e) => {
@@ -1096,8 +1332,8 @@
         movedDistanceRef.current += Math.abs(nextX - camera.x) + Math.abs(nextY - camera.y);
         setCamera((prev) => ({
           ...prev,
-          x: Math.max(-500, Math.min(500, nextX)),
-          y: Math.max(-400, Math.min(400, nextY))
+          x: Math.max(-600, Math.min(600, nextX)),
+          y: Math.max(-500, Math.min(500, nextY))
         }));
       };
 
@@ -1110,7 +1346,6 @@
           const worldX = (e.clientX - rect.left - rect.width / 2 - camera.x) / camera.zoom;
           const worldY = (e.clientY - rect.top - rect.height / 2 - camera.y) / camera.zoom;
 
-          // Cek botol hanyut
           for (const bh of bottleHitboxesRef.current) {
             if (Math.hypot(worldX - bh.x, worldY - bh.y) <= bh.r) {
               soundManager.playCoin();
@@ -1119,7 +1354,6 @@
             }
           }
 
-          // Cek pulau
           for (const hb of hitboxesRef.current) {
             if (Math.hypot(worldX - hb.x, worldY - hb.y) <= hb.hitRadius) {
               soundManager.playClick();
@@ -1130,7 +1364,6 @@
         }
       };
 
-      // Multi-Touch Pinch to Zoom
       const handleTouchStart = (e) => {
         if (e.touches.length === 2) {
           touchDistRef.current = Math.hypot(
@@ -1149,7 +1382,7 @@
           const diff = (currentDist - touchDistRef.current) * 0.005;
           setCamera((prev) => ({
             ...prev,
-            zoom: Math.max(0.65, Math.min(1.75, Number((prev.zoom + diff).toFixed(2))))
+            zoom: Math.max(0.6, Math.min(1.8, Number((prev.zoom + diff).toFixed(2))))
           }));
           touchDistRef.current = currentDist;
         }
@@ -1160,7 +1393,7 @@
         const delta = e.deltaY < 0 ? 0.12 : -0.12;
         setCamera((prev) => ({
           ...prev,
-          zoom: Math.max(0.65, Math.min(1.75, Number((prev.zoom + delta).toFixed(2))))
+          zoom: Math.max(0.6, Math.min(1.8, Number((prev.zoom + delta).toFixed(2))))
         }));
       };
 
@@ -1217,23 +1450,142 @@
     }
 
     // ========================================================================
+    // GLOBAL SEARCH BAR & ENSIKLOPEDIA TEORI
+    // ========================================================================
+    function GlobalSearchBar({ islands, onSelectIsland, flyToIsland }) {
+      const [query, setQuery] = useState('');
+      const [isOpen, setIsOpen] = useState(false);
+
+      const results = useMemo(() => {
+        if (!query.trim() || query.length < 2) return [];
+        const q = query.toLowerCase();
+        const matches = [];
+
+        islands.forEach((isl) => {
+          if (isl.name.toLowerCase().includes(q) || isl.course.toLowerCase().includes(q) || isl.summary.toLowerCase().includes(q)) {
+            matches.push({ type: 'Kawasan', title: isl.name, sub: isl.course, islandId: isl.id });
+          }
+          (isl.concepts || []).forEach((c) => {
+            if (c.toLowerCase().includes(q)) {
+              matches.push({ type: 'Konsep', title: c.split(':')[0], sub: isl.name, islandId: isl.id });
+            }
+          });
+        });
+        return matches.slice(0, 5);
+      }, [query, islands]);
+
+      return (
+        <div className="relative w-64 md:w-80">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur-md border border-white/15 text-white shadow-lg">
+            <Icon name="Search" className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="Cari materi / teori (ADDIE, Mayer, TPACK)..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setIsOpen(true);
+              }}
+              onFocus={() => setIsOpen(true)}
+              className="w-full bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none"
+            />
+            {query && (
+              <button onClick={() => { setQuery(''); setIsOpen(false); }} className="text-slate-400 hover:text-white">
+                <Icon name="X" className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {isOpen && results.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1.5 p-2 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/20 shadow-2xl z-50 space-y-1">
+              {results.map((res, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    flyToIsland(res.islandId);
+                    onSelectIsland(res.islandId);
+                    setIsOpen(false);
+                    setQuery('');
+                  }}
+                  className="w-full text-left p-2 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-between gap-2 cursor-pointer"
+                >
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white truncate">{res.title}</div>
+                    <div className="text-[10px] text-emerald-400 truncate">{res.sub}</div>
+                  </div>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 shrink-0">
+                    {res.type}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // FLOATING CAMERA CONTROLS (+ / - / RESET)
+    // ========================================================================
+    function CameraControls({ camera, setCamera }) {
+      const zoomIn = () => {
+        soundManager.playClick();
+        setCamera((prev) => ({ ...prev, zoom: Math.min(1.8, Number((prev.zoom + 0.15).toFixed(2))) }));
+      };
+      const zoomOut = () => {
+        soundManager.playClick();
+        setCamera((prev) => ({ ...prev, zoom: Math.max(0.6, Number((prev.zoom - 0.15).toFixed(2))) }));
+      };
+      const resetCenter = () => {
+        soundManager.playClick();
+        setCamera({ x: 0, y: 10, zoom: 1 });
+      };
+
+      return (
+        <div className="flex flex-col gap-1.5 p-1.5 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-white/15 shadow-xl text-white">
+          <button onClick={zoomIn} title="Zoom In" className="p-2 rounded-xl hover:bg-white/15 cursor-pointer">
+            <Icon name="Plus" className="w-4 h-4 text-emerald-400" />
+          </button>
+          <button onClick={zoomOut} title="Zoom Out" className="p-2 rounded-xl hover:bg-white/15 cursor-pointer">
+            <Icon name="Minus" className="w-4 h-4 text-emerald-400" />
+          </button>
+          <button onClick={resetCenter} title="Pusatkan Kamera" className="p-2 rounded-xl hover:bg-white/15 cursor-pointer">
+            <Icon name="Compass" className="w-4 h-4 text-amber-400" />
+          </button>
+        </div>
+      );
+    }
+
+    // ========================================================================
     // KOMPONEN UTAMA (APP)
     // ========================================================================
     function App() {
-      const [playerName, setPlayerName] = useState('Mahasiswa_TP');
-      const [dayStreak, setDayStreak] = useState(3);
-      const [xp, setXp] = useState(320);
-      const [citizens, setCitizens] = useState(2640);
-      const [passportId] = useState('TP-2026-088');
-      const [lastVisit, setLastVisit] = useState(getTodayKey());
+      // 1. Inisialisasi State dari LocalStorage
+      const savedData = useMemo(() => {
+        try {
+          const item = localStorage.getItem(STORAGE_KEY);
+          return item ? JSON.parse(item) : null;
+        } catch (_) {
+          return null;
+        }
+      }, []);
 
-      const [islands, setIslands] = useState(INITIAL_ISLANDS);
-      const [quests, setQuests] = useState(INITIAL_QUESTS);
-      const [skillTree, setSkillTree] = useState(INITIAL_SKILL_TREE);
-      const [bottles, setBottles] = useState(INITIAL_BOTTLES);
-      const [poll, setPoll] = useState(INITIAL_POLL);
-      const [votedOptionId, setVotedOptionId] = useState(null);
-      const [alunMessages, setAlunMessages] = useState(INITIAL_ALUN_ALUN);
+      const [playerName, setPlayerName] = useState(savedData?.playerName || 'Mahasiswa_TP');
+      const [dayStreak, setDayStreak] = useState(savedData?.dayStreak || 3);
+      const [xp, setXp] = useState(savedData?.xp || 320);
+      const [citizens, setCitizens] = useState(savedData?.citizens || 2640);
+      const [passportId] = useState(savedData?.passportId || 'TP-2026-088');
+      const [lastVisit] = useState(savedData?.lastVisit || getTodayKey());
+
+      const [islands, setIslands] = useState(savedData?.islands || INITIAL_ISLANDS);
+      const [quests, setQuests] = useState(savedData?.quests || INITIAL_QUESTS);
+      const [skillTree, setSkillTree] = useState(savedData?.skillTree || INITIAL_SKILL_TREE);
+      const [bottles, setBottles] = useState(savedData?.bottles || INITIAL_BOTTLES);
+      const [poll, setPoll] = useState(savedData?.poll || INITIAL_POLL);
+      const [votedOptionId, setVotedOptionId] = useState(savedData?.votedOptionId || null);
+      const [alunMessages, setAlunMessages] = useState(savedData?.alunMessages || INITIAL_ALUN_ALUN);
+      const [sailColor, setSailColor] = useState(savedData?.sailColor || '#10b981');
+      const [masteredCards, setMasteredCards] = useState(savedData?.masteredCards || []);
 
       // Cuaca: 'day' | 'sunset' | 'night' | 'storm' | 'aurora'
       const [timeMode, setTimeMode] = useState('day');
@@ -1243,11 +1595,10 @@
       const [camera, setCamera] = useState({ x: 0, y: 10, zoom: 1 });
       const [selectedIslandId, setSelectedIslandId] = useState('isl-hub');
       const [pulseIslandId, setPulseIslandId] = useState(null);
-      const [searchQuery, setSearchQuery] = useState('');
       const [burstTrigger, setBurstTrigger] = useState(null);
       const [boatPos, setBoatPos] = useState({ x: 0, y: 0 });
 
-      // Modal: 'none' | 'island' | 'paspor' | 'misi' | 'skills' | 'wizard' | 'boss' | 'mentor' | 'bottle' | 'arena' | 'voting' | 'alun' | 'menu'
+      // Modal: 'none' | 'island' | 'paspor' | 'misi' | 'skills' | 'wizard' | 'boss' | 'mentor' | 'bottle' | 'arena' | 'voting' | 'alun' | 'flashcards' | 'sorter' | 'certificate' | 'menu'
       const [activeModal, setActiveModal] = useState('none');
       const [selectedBottleId, setSelectedBottleId] = useState(null);
       const [toast, setToast] = useState(null);
@@ -1258,6 +1609,39 @@
       const [arenaSeconds, setArenaSeconds] = useState(25 * 60);
       const [arenaRunning, setArenaRunning] = useState(false);
       const [rainSoundOn, setRainSoundOn] = useState(false);
+
+      // 2. Auto-Save ke LocalStorage Setiap Perubahan State Kritis
+      useEffect(() => {
+        try {
+          const payload = {
+            playerName,
+            dayStreak,
+            xp,
+            citizens,
+            passportId,
+            lastVisit,
+            islands,
+            quests,
+            skillTree,
+            bottles,
+            poll,
+            votedOptionId,
+            alunMessages,
+            sailColor,
+            masteredCards
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch (_) {}
+      }, [playerName, dayStreak, xp, citizens, passportId, lastVisit, islands, quests, skillTree, bottles, poll, votedOptionId, alunMessages, sailColor, masteredCards]);
+
+      // Kontrol Suara Hujan Real-time saat Badai atau Arena
+      useEffect(() => {
+        if (timeMode === 'storm' || (activeModal === 'arena' && rainSoundOn)) {
+          soundManager.startRain();
+        } else {
+          soundManager.stopRain();
+        }
+      }, [timeMode, activeModal, rainSoundOn]);
 
       const triggerToast = useCallback((msg) => {
         setToast(msg);
@@ -1275,6 +1659,7 @@
       const toggleMute = () => {
         soundManager.muted = !isMuted;
         setIsMuted(!isMuted);
+        if (!isMuted) soundManager.stopRain();
       };
 
       const flyToIsland = (islandId) => {
@@ -1367,10 +1752,40 @@
         setBottles((prev) =>
           prev.map((b) => (b.id === bottleId ? { ...b, claimed: true } : b))
         );
-        setXp((x) => x + 30);
+        setXp((x) => x + 35);
         soundManager.playCoin();
-        triggerToast('Pesan botol terpecahkan! +30 XP');
+        triggerToast('Pesan botol terpecahkan! +35 XP');
         setActiveModal('none');
+      };
+
+      const handleAddAlunMessage = (text, badge, island) => {
+        const newMsg = {
+          id: 'msg-' + Date.now(),
+          author: playerName,
+          badge: badge || 'Warga Voxel',
+          island: island || 'Markas Tekpend',
+          text,
+          time: 'Baru saja',
+          likes: 0
+        };
+        setAlunMessages((prev) => [newMsg, ...prev]);
+        setXp((x) => x + 20);
+        soundManager.playCoin();
+        triggerToast('Pikiranmu berhasil dipajang di Alun-Alun! (+20 XP)');
+      };
+
+      const handleLikeAlunMessage = (msgId) => {
+        setAlunMessages((prev) =>
+          prev.map((m) => (m.id === msgId ? { ...m, likes: m.likes + 1 } : m))
+        );
+        soundManager.playCoin();
+      };
+
+      const handleResetAllProgress = () => {
+        if (window.confirm('Apakah Anda yakin ingin mereset seluruh progres belajar ke awal?')) {
+          localStorage.removeItem(STORAGE_KEY);
+          window.location.reload();
+        }
       };
 
       const selectedIsland = useMemo(
@@ -1408,9 +1823,10 @@
               setSelectedBottleId(bId);
               setActiveModal('bottle');
             }}
+            sailColor={sailColor}
           />
 
-          {/* TOAST */}
+          {/* TOAST NOTIFIKASI */}
           {toast && (
             <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-slate-900/95 text-white text-xs font-semibold shadow-xl border border-emerald-400/40 flex items-center gap-2 backdrop-blur-md animate-bounce">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -1475,6 +1891,16 @@
                 </div>
               </button>
             </div>
+
+            {/* PENCARIAN TEORI GLOBAL */}
+            <GlobalSearchBar
+              islands={islands}
+              onSelectIsland={(id) => {
+                setSelectedIslandId(id);
+                setActiveModal('island');
+              }}
+              flyToIsland={flyToIsland}
+            />
           </div>
 
           {/* KONTROL KANAN ATAS */}
@@ -1503,8 +1929,13 @@
             </button>
           </div>
 
-          {/* RADAR MINIMAP */}
-          <div className="fixed bottom-20 left-3.5 z-20 hidden md:block">
+          {/* TOMBOL KONTROL KAMERA KANAN TENGAH */}
+          <div className="fixed right-3.5 bottom-28 z-20">
+            <CameraControls camera={camera} setCamera={setCamera} />
+          </div>
+
+          {/* RADAR MINIMAP KIRI BAWAH */}
+          <div className="fixed bottom-24 left-3.5 z-20 hidden md:block">
             <MiniMapRadar
               islands={islands}
               selectedIslandId={selectedIslandId}
@@ -1516,6 +1947,7 @@
 
           {/* OVERLAY DOCK BAWAH LENGKAP */}
           <div className="fixed bottom-3 inset-x-0 z-20 flex flex-col items-center px-3 pointer-events-none gap-2">
+            {/* WIDGET POLLING DEWAN */}
             <div className="pointer-events-auto w-full max-w-md px-3.5 py-2 rounded-xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-lg flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Icon name="Vote" className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -1532,6 +1964,7 @@
               </button>
             </div>
 
+            {/* NAVIGASI DOCK UTAMA LENGKAP */}
             <nav
               aria-label="Navigasi Utama"
               className="pointer-events-auto bg-slate-900/95 backdrop-blur-xl p-1.5 rounded-2xl border border-white/15 shadow-2xl flex items-center gap-1 sm:gap-1.5 overflow-x-auto max-w-full"
@@ -1540,11 +1973,14 @@
                 { id: 'none', label: 'Peta', icon: 'Map' },
                 { id: 'island', label: 'Kawasan', icon: 'BookOpen' },
                 { id: 'skills', label: 'Skill Tree', icon: 'GitFork' },
+                { id: 'flashcards', label: 'Flashcards', icon: 'Layers' },
+                { id: 'sorter', label: 'Pemilah CLT', icon: 'Sliders' },
+                { id: 'alun', label: 'Alun-Alun', icon: 'Users' },
                 { id: 'misi', label: 'Misi', icon: 'ListChecks' },
                 { id: 'wizard', label: 'Desain ADDIE', icon: 'FileSpreadsheet' },
                 { id: 'boss', label: 'Boss Battle', icon: 'Flame' },
                 { id: 'mentor', label: 'Prof. Voxel', icon: 'Sparkles' },
-                { id: 'arena', label: 'Arena', icon: 'Timer' },
+                { id: 'arena', label: 'Arena Fokus', icon: 'Timer' },
                 { id: 'paspor', label: 'Paspor', icon: 'IdCard' }
               ].map((nav) => {
                 const isActive = activeModal === nav.id;
@@ -1567,7 +2003,11 @@
             </nav>
           </div>
 
-          {/* MODAL 1: DETAIL KAWASAN + BANGUN FASILITAS & MULTI-KUIS */}
+          {/* ======================================================================== */}
+          {/* DAFTAR MODAL INTERAKTIF */}
+          {/* ======================================================================== */}
+
+          {/* MODAL 1: DETAIL KAWASAN + FASILITAS & KUIS */}
           {activeModal === 'island' && (
             <EnhancedIslandDetailModal
               island={selectedIsland}
@@ -1596,19 +2036,60 @@
             />
           )}
 
-          {/* MODAL 3: WIZARD DESAIN PEMBELAJARAN ADDIE */}
+          {/* MODAL 3: FLASHCARDS TEORI TEKPEND (SPACED REPETITION) */}
+          {activeModal === 'flashcards' && (
+            <FlashcardsModal
+              masteredCards={masteredCards}
+              onMarkMastered={(id) => {
+                if (!masteredCards.includes(id)) {
+                  setMasteredCards((prev) => [...prev, id]);
+                  setXp((x) => x + 15);
+                  soundManager.playCoin();
+                  triggerToast('Konsep dikuasai! (+15 XP)');
+                }
+              }}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 4: MINI-GAME PEMILAH BEBAN KOGNITIF (CLT SORTER) */}
+          {activeModal === 'sorter' && (
+            <CognitiveLoadSorterModal
+              onSuccess={(earnedXp) => {
+                setXp((x) => x + earnedXp);
+                setCitizens((c) => c + 150);
+                soundManager.playVictory();
+                triggerToast(`Hebat! Mini-game tuntas! (+${earnedXp} XP)`);
+              }}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 5: ALUN-ALUN KOMUNITAS (INTERAKTIF & BISA POSTING) */}
+          {activeModal === 'alun' && (
+            <AlunAlunModal
+              messages={alunMessages}
+              onPostMessage={handleAddAlunMessage}
+              onLikeMessage={handleLikeAlunMessage}
+              playerName={playerName}
+              islands={islands}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 6: WIZARD DESAIN PEMBELAJARAN ADDIE (PRINT & MARKDOWN) */}
           {activeModal === 'wizard' && (
             <AddieProjectWizardModal
               onClose={() => setActiveModal('none')}
               onSaveProject={(proj) => {
                 setXp((x) => x + 75);
                 soundManager.playVictory();
-                triggerToast('Modul ADDIE berhasil dibuat & diunduh! (+75 XP)');
+                triggerToast('Modul ADDIE berhasil dibuat & disimpan! (+75 XP)');
               }}
             />
           )}
 
-          {/* MODAL 4: BOSS BATTLE (MONSTER BEBAN KOGNITIF) */}
+          {/* MODAL 7: BOSS BATTLE (MONSTER BEBAN KOGNITIF) */}
           {activeModal === 'boss' && (
             <BossBattleModal
               onClose={() => setActiveModal('none')}
@@ -1621,14 +2102,12 @@
             />
           )}
 
-          {/* MODAL 5: MENTOR AI PROF. VOXEL */}
+          {/* MODAL 8: MENTOR AI PROF. VOXEL */}
           {activeModal === 'mentor' && (
-            <ProfVoxelMentorModal
-              onClose={() => setActiveModal('none')}
-            />
+            <ProfVoxelMentorModal onClose={() => setActiveModal('none')} />
           )}
 
-          {/* MODAL 6: BOTOL HANYUT */}
+          {/* MODAL 9: BOTOL HANYUT */}
           {activeModal === 'bottle' && activeBottle && (
             <BottleMessageModal
               bottle={activeBottle}
@@ -1637,7 +2116,7 @@
             />
           )}
 
-          {/* MODAL LAINNYA (PASPOR, MISI, ARENA, VOTING, ALUN-ALUN, MENU) */}
+          {/* MODAL 10: PASPOR + KUSTOMISASI LAYAR KAPAL */}
           {activeModal === 'paspor' && (
             <PasporModal
               playerName={playerName}
@@ -1648,10 +2127,25 @@
               levelNumber={levelNumber}
               citizens={citizens}
               islands={islands}
+              sailColor={sailColor}
+              setSailColor={setSailColor}
+              onOpenCertificate={() => setActiveModal('certificate')}
               onClose={() => setActiveModal('none')}
             />
           )}
 
+          {/* MODAL 11: SERTIFIKAT KELULUSAN (CANVAS DOWNLOAD) */}
+          {activeModal === 'certificate' && (
+            <CertificateModal
+              playerName={playerName}
+              passportId={passportId}
+              levelNumber={levelNumber}
+              xp={xp}
+              onClose={() => setActiveModal('none')}
+            />
+          )}
+
+          {/* MODAL 12: MISI KAWASAN */}
           {activeModal === 'misi' && (
             <MisiAddieModal
               quests={quests}
@@ -1665,6 +2159,7 @@
             />
           )}
 
+          {/* MODAL 13: ARENA FOKUS DENGAN SUARA HUJAN SYNTH */}
           {activeModal === 'arena' && (
             <ArenaFokusModal
               quests={quests}
@@ -1698,38 +2193,28 @@
             />
           )}
 
+          {/* MODAL 14: DEWAN VOTING */}
           {activeModal === 'voting' && (
             <VotingModal poll={poll} votedOptionId={votedOptionId} onVote={handleVote} onClose={() => setActiveModal('none')} />
           )}
 
+          {/* MODAL 15: MENU UTAMA & RESET PROGRESS */}
           {activeModal === 'menu' && (
-            <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-                <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
-                  <h2 className="font-bold text-sm">Fitur EdTech World Ultimate</h2>
-                  <button onClick={() => setActiveModal('none')} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
-                    <Icon name="X" className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="p-5 space-y-2 text-xs">
-                  <p>• 🌊 <strong>Botol Hanyut:</strong> Klik botol kaca di laut untuk kuis & kutipan tokoh.</p>
-                  <p>• 🌳 <strong>Pohon Keahlian:</strong> Buka skill tree Tekpend dengan XP.</p>
-                  <p>• ⚔️ <strong>Boss Battle:</strong> Taklukkan Monster Beban Kognitif.</p>
-                  <p>• 📝 <strong>Desain ADDIE:</strong> Wizard pembuat dokumen RPP/Modul ajar.</p>
-                  <p>• 🤖 <strong>Prof. Voxel:</strong> Mentor AI materi kuliah Tekpend.</p>
-                </div>
-              </div>
-            </div>
+            <MenuModal
+              onResetProgress={handleResetAllProgress}
+              onOpenFeature={(modalName) => setActiveModal(modalName)}
+              onClose={() => setActiveModal('none')}
+            />
           )}
         </div>
       );
     }
 
     // ========================================================================
-    // MODAL: DETAIL KAWASAN + BANGUN FASILITAS VOXEL
+    // MODAL: DETAIL KAWASAN + FASILITAS & MULTI-KUIS
     // ========================================================================
     function EnhancedIslandDetailModal({ island, quests, onClose, onCompleteQuest, onStartArena, onPassQuiz, onBuildFacility, userXp }) {
-      const [tab, setTab] = useState('summary'); // 'summary' | 'build' | 'quiz' | 'quests'
+      const [tab, setTab] = useState('summary');
       const [selectedQuizIdx, setSelectedQuizIdx] = useState(0);
       const [selectedOpt, setSelectedOpt] = useState(null);
       const [quizAnswered, setQuizAnswered] = useState(false);
@@ -1800,7 +2285,6 @@
                 </div>
               )}
 
-              {/* TAB BANGUN FASILITAS VOXEL */}
               {tab === 'build' && (
                 <div className="space-y-3">
                   <p className="text-slate-500">Bangun fasilitas di pulau ini untuk meningkatkan kemakmuran dan menumbuhkan peradaban belajar:</p>
@@ -1841,7 +2325,6 @@
                 </div>
               )}
 
-              {/* TAB KUIS */}
               {tab === 'quiz' && curQuiz && (
                 <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3">
                   <div className="flex items-center justify-between font-bold text-indigo-950">
@@ -1885,7 +2368,6 @@
                 </div>
               )}
 
-              {/* TAB MISI */}
               {tab === 'quests' && (
                 <div className="space-y-2">
                   {quests.map((q) => (
@@ -1974,62 +2456,86 @@
     }
 
     // ========================================================================
-    // MODAL: BOTOL HANYUT (MESSAGE IN A BOTTLE)
+    // MODAL: FLASHCARDS TEORI TEKPEND (SPACED REPETITION)
     // ========================================================================
-    function BottleMessageModal({ bottle, onClaim, onClose }) {
-      const [pickedOpt, setPickedOpt] = useState(null);
-      const [answered, setAnswered] = useState(false);
+    function FlashcardsModal({ masteredCards, onMarkMastered, onClose }) {
+      const [curIdx, setCurIdx] = useState(0);
+      const [isFlipped, setIsFlipped] = useState(false);
 
-      const handleCheck = () => {
-        setAnswered(true);
-        if (pickedOpt === bottle.ans) onClaim();
+      const card = FLASHCARDS_DATA[curIdx];
+      const isMastered = masteredCards.includes(card.id);
+
+      const handleNext = () => {
+        setIsFlipped(false);
+        setCurIdx((prev) => (prev + 1) % FLASHCARDS_DATA.length);
+      };
+      const handlePrev = () => {
+        setIsFlipped(false);
+        setCurIdx((prev) => (prev - 1 + FLASHCARDS_DATA.length) % FLASHCARDS_DATA.length);
       };
 
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <span className="text-xl">🍾</span>
-                <h3 className="font-extrabold text-sm">Pesan Botol Hanyut dari Lautan</h3>
+                <Icon name="Layers" className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h3 className="font-extrabold text-sm">Flashcards Teori Tekpend</h3>
+                  <span className="text-[10px] text-emerald-300">Dikuasai: {masteredCards.length} / {FLASHCARDS_DATA.length} Kartu</span>
+                </div>
               </div>
-              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
                 <Icon name="X" className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-950 text-xs italic leading-relaxed">
-              “{bottle.quote}”
-              <span className="block not-italic font-bold text-amber-800 mt-2">— {bottle.author}</span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <h4 className="font-bold text-slate-900">Kuis Kilat (+{bottle.rewardXp} XP):</h4>
-              <p className="font-semibold text-slate-700">{bottle.question}</p>
-              <div className="space-y-1.5">
-                {bottle.options.map((opt, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => !answered && setPickedOpt(idx)}
-                    className={`w-full text-left p-2.5 rounded-xl border text-xs cursor-pointer ${
-                      pickedOpt === idx ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-50 hover:bg-slate-100'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center text-xs text-slate-500 font-bold">
+                <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700">{card.category}</span>
+                <span>Kartu {curIdx + 1} dari {FLASHCARDS_DATA.length}</span>
               </div>
-              {!answered ? (
-                <button
-                  onClick={handleCheck}
-                  disabled={pickedOpt === null}
-                  className="w-full mt-2 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer disabled:opacity-40"
-                >
-                  Pecahkan Botol (+30 XP)
+
+              {/* KARTU INTERAKTIF */}
+              <div
+                onClick={() => {
+                  soundManager.playClick();
+                  setIsFlipped(!isFlipped);
+                }}
+                className="w-full h-56 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-indigo-50/40 p-6 flex flex-col justify-between cursor-pointer hover:shadow-lg transition-all text-center select-none"
+              >
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  {isFlipped ? '💡 Jawaban / Konsep' : '❓ Pertanyaan (Klik untuk Membalik)'}
+                </div>
+                <div className="my-auto">
+                  <h4 className="font-extrabold text-base text-slate-900 mb-2">{card.title}</h4>
+                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line font-medium">
+                    {isFlipped ? card.back : card.front}
+                  </p>
+                </div>
+                <div className="text-[10px] text-indigo-600 font-bold">
+                  {isFlipped ? 'Klik kartu untuk kembali ke pertanyaan' : 'Klik kartu untuk melihat jawaban'}
+                </div>
+              </div>
+
+              {/* NAVIGASI & KLAIM DIKUASAI */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                <button onClick={handlePrev} className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer">
+                  ← Sebelumnya
                 </button>
-              ) : (
-                <p className="text-center font-bold text-emerald-600">Jawaban benar! Poin XP ditambahkan.</p>
-              )}
+                <button
+                  onClick={() => onMarkMastered(card.id)}
+                  disabled={isMastered}
+                  className={`px-4 py-2 rounded-xl font-bold text-xs cursor-pointer ${
+                    isMastered ? 'bg-emerald-100 text-emerald-800' : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+                  }`}
+                >
+                  {isMastered ? '✓ Sudah Dikuasai' : 'Tandai Paham (+15 XP)'}
+                </button>
+                <button onClick={handleNext} className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer">
+                  Berikutnya →
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2037,7 +2543,370 @@
     }
 
     // ========================================================================
-    // MODAL: WIZARD DESAIN PEMBELAJARAN ADDIE
+    // MODAL: MINI-GAME PEMILAH BEBAN KOGNITIF (CLT SORTER)
+    // ========================================================================
+    function CognitiveLoadSorterModal({ onSuccess, onClose }) {
+      const [curIdx, setCurIdx] = useState(0);
+      const [score, setScore] = useState(0);
+      const [feedback, setFeedback] = useState(null);
+      const [gameOver, setGameOver] = useState(false);
+
+      const scenario = SORTER_SCENARIOS[curIdx];
+
+      const handleChoice = (type) => {
+        if (feedback) return;
+        const isCorrect = type === scenario.type;
+        if (isCorrect) {
+          soundManager.playCoin();
+          setScore((s) => s + 1);
+        } else {
+          soundManager.playThunder();
+        }
+        setFeedback({ isCorrect, explanation: scenario.explanation });
+      };
+
+      const handleNext = () => {
+        setFeedback(null);
+        if (curIdx < SORTER_SCENARIOS.length - 1) {
+          setCurIdx(curIdx + 1);
+        } else {
+          setGameOver(true);
+          onSuccess(score * 20 + 40);
+        }
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <Icon name="Sliders" className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-extrabold text-sm">Mini-Game: Pemilah Beban Kognitif</h3>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            {!gameOver ? (
+              <div className="space-y-4 text-xs">
+                <div className="flex justify-between font-bold text-slate-500">
+                  <span>Kasus {curIdx + 1} dari {SORTER_SCENARIOS.length}</span>
+                  <span className="text-emerald-600">Skor: {score} Benar</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-slate-800 font-semibold text-sm leading-relaxed">
+                  "{scenario.text}"
+                </div>
+
+                <p className="font-bold text-slate-700">Tentukan jenis beban kognitif pada skenario di atas:</p>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    onClick={() => handleChoice('intrinsic')}
+                    disabled={Boolean(feedback)}
+                    className="p-3 rounded-xl border border-blue-200 bg-blue-50/70 hover:bg-blue-100 text-blue-900 font-bold text-left cursor-pointer"
+                  >
+                    🔵 Intrinsic Load (Kompleksitas alami materi)
+                  </button>
+                  <button
+                    onClick={() => handleChoice('extraneous')}
+                    disabled={Boolean(feedback)}
+                    className="p-3 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-900 font-bold text-left cursor-pointer"
+                  >
+                    🔴 Extraneous Load (Akibat distraksi / desain buruk)
+                  </button>
+                  <button
+                    onClick={() => handleChoice('germane')}
+                    disabled={Boolean(feedback)}
+                    className="p-3 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-900 font-bold text-left cursor-pointer"
+                  >
+                    🟢 Germane Load (Proses pembentukan skema mental aktif)
+                  </button>
+                </div>
+
+                {feedback && (
+                  <div className={`p-3.5 rounded-2xl border space-y-2 ${feedback.isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-rose-50 border-rose-300 text-rose-900'}`}>
+                    <div className="font-extrabold">{feedback.isCorrect ? '✓ Jawaban Tepat!' : '✗ Kurang Tepat!'}</div>
+                    <p className="text-[11px] leading-relaxed">{feedback.explanation}</p>
+                    <button onClick={handleNext} className="mt-1 px-4 py-1.5 rounded-xl bg-slate-900 text-white font-bold cursor-pointer">
+                      Lanjut Kasus Berikutnya →
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-3">
+                <div className="text-4xl">🎉</div>
+                <h4 className="font-extrabold text-base text-slate-900">Uji Pemilahan Tuntas!</h4>
+                <p className="text-xs text-slate-600">
+                  Kamu berhasil menyelesaikan simulasi dengan skor <strong>{score}/{SORTER_SCENARIOS.length}</strong> dan mendapatkan bonus XP serta penduduk baru!
+                </p>
+                <button onClick={onClose} className="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
+                  Selesai
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: ALUN-ALUN KOMUNITAS (INTERAKTIF & BISA POSTING)
+    // ========================================================================
+    function AlunAlunModal({ messages, onPostMessage, onLikeMessage, playerName, islands, onClose }) {
+      const [inputMsg, setInputMsg] = useState('');
+      const [pickedBadge, setPickedBadge] = useState('Arsitek ADDIE');
+      const [pickedIsland, setPickedIsland] = useState(islands[0]?.name || 'Markas Tekpend');
+
+      const badges = ['Arsitek ADDIE', 'Pakar TPACK', 'Penakluk Kognitif', 'Eksplorator Voxel', 'Desainer Pesan'];
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!inputMsg.trim()) return;
+        onPostMessage(inputMsg, pickedBadge, pickedIsland);
+        setInputMsg('');
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[88vh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Icon name="Users" className="w-5 h-5 text-emerald-400" />
+                <h2 className="font-extrabold text-sm">Alun-Alun Refleksi & Komunitas Tekpend</h2>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 text-xs">
+              {/* FORM BUAT POSTINGAN BARU */}
+              <form onSubmit={handleSubmit} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="font-bold text-slate-800">Bagikan Temuan atau Refleksi Belajarmu:</div>
+                <textarea
+                  rows={2}
+                  placeholder="Misal: Baru saja paham konsep Scaffolding di Puncak Teori..."
+                  value={inputMsg}
+                  onChange={(e) => setInputMsg(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-emerald-500"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={pickedBadge}
+                      onChange={(e) => setPickedBadge(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg border bg-white font-semibold text-[11px]"
+                    >
+                      {badges.map((b) => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                    <select
+                      value={pickedIsland}
+                      onChange={(e) => setPickedIsland(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg border bg-white font-semibold text-[11px]"
+                    >
+                      {islands.map((isl) => <option key={isl.id} value={isl.name}>{isl.name}</option>)}
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!inputMsg.trim()}
+                    className="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer disabled:opacity-40"
+                  >
+                    Kirim (+20 XP)
+                  </button>
+                </div>
+              </form>
+
+              {/* LIST PESAN WARGA */}
+              <div className="space-y-3">
+                {messages.map((m) => (
+                  <div key={m.id} className="p-4 rounded-2xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-slate-900">{m.author}</strong>
+                        <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold text-[10px]">{m.badge}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400">{m.time}</span>
+                    </div>
+                    <p className="text-slate-700 leading-relaxed">{m.text}</p>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] text-slate-500">
+                      <span>📍 {m.island}</span>
+                      <button
+                        onClick={() => onLikeMessage(m.id)}
+                        className="flex items-center gap-1 font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+                      >
+                        ❤️ <span>{m.likes} Suka</span>
+                      </button>
+                    </div>
+                    {m.devReply && (
+                      <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-900 text-[11px] mt-2">
+                        👑 <strong>Prof. Voxel:</strong> {m.devReply}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: SERTIFIKAT KELULUSAN TEKPEND (CANVAS SNAPSHOT & PNG DOWNLOAD)
+    // ========================================================================
+    function CertificateModal({ playerName, passportId, levelNumber, xp, onClose }) {
+      const canvasRef = useRef(null);
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // 1. Background Elegan Parchment Emas
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, w, h);
+
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, '#1e293b');
+        grad.addColorStop(0.5, '#0f172a');
+        grad.addColorStop(1, '#020617');
+        ctx.fillStyle = grad;
+        ctx.fillRect(20, 20, w - 40, h - 40);
+
+        // 2. Bingkai Emas Ganda
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(35, 35, w - 70, h - 70);
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(45, 45, w - 90, h - 90);
+
+        // Ornamen Sudut
+        const corners = [
+          [35, 35], [w - 35, 35], [35, h - 35], [w - 35, h - 35]
+        ];
+        corners.forEach(([cx, cy]) => {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+          ctx.fillStyle = '#facc15';
+          ctx.fill();
+        });
+
+        // 3. Teks Header & Judul
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '700 16px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('AKADEMI TEKNOLOGI PENDIDIKAN & LITERASI DIGITAL', w / 2, 95);
+
+        ctx.fillStyle = '#facc15';
+        ctx.font = '700 30px "Cinzel", "Plus Jakarta Sans", serif';
+        ctx.fillText('SERTIFIKAT KOMPETENSI PENJELAJAH EDTECH', w / 2, 145);
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '500 16px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Sertifikat ini dengan bangga dianugerahkan kepada:', w / 2, 210);
+
+        // Nama Mahasiswa
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '800 34px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(playerName.toUpperCase(), w / 2, 265);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '600 14px "JetBrains Mono", monospace';
+        ctx.fillText(`PASPOR ID: ${passportId}  •  TINGKAT: LEVEL ${levelNumber} (${xp} XP)`, w / 2, 305);
+
+        // Deskripsi Capaian
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '400 15px "Plus Jakarta Sans", sans-serif';
+        const textL1 = 'Telah berhasil menuntaskan seluruh penjelajahan pulau pembelajaran EdTech World,';
+        const textL2 = 'menguasai Model ADDIE, Prinsip Multimedia Mayer, Pemilihan Media ASSURE,';
+        const textL3 = 'serta Etika Pemanfaatan Artificial Intelligence & Literasi Siber secara paripurna.';
+        ctx.fillText(textL1, w / 2, 355);
+        ctx.fillText(textL2, w / 2, 380);
+        ctx.fillText(textL3, w / 2, 405);
+
+        // Garis Pembatas
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(w / 2 - 200, 440);
+        ctx.lineTo(w / 2 + 200, 440);
+        ctx.stroke();
+
+        // Tanggal & Tanda Tangan
+        const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '500 13px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(`Diterbitkan pada: ${dateStr}`, w / 2, 470);
+
+        // Kolom Tanda Tangan
+        ctx.textAlign = 'left';
+        ctx.fillText('Prof. Voxel', 160, 520);
+        ctx.fillText('Mentor AI Teknologi Pendidikan', 160, 540);
+        ctx.beginPath();
+        ctx.moveTo(160, 505);
+        ctx.lineTo(340, 505);
+        ctx.stroke();
+
+        ctx.textAlign = 'right';
+        ctx.fillText('Dewan Kurikulum EdTech', w - 160, 520);
+        ctx.fillText('Lembaga Kurikulum Digital', w - 160, 540);
+        ctx.beginPath();
+        ctx.moveTo(w - 340, 505);
+        ctx.lineTo(w - 160, 505);
+        ctx.stroke();
+      }, [playerName, passportId, levelNumber, xp]);
+
+      const handleDownloadPng = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Sertifikat_EdTech_${playerName.replace(/\s+/g, '_')}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-slate-900 text-white shadow-2xl border border-white/20 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="font-extrabold text-sm text-amber-400">Pratinjau Sertifikat Kelulusan</h3>
+              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-x-auto flex justify-center py-2">
+              <canvas ref={canvasRef} width={800} height={580} className="w-full rounded-xl border border-white/10 shadow-2xl max-w-lg" />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-slate-400 cursor-pointer">
+                Tutup
+              </button>
+              <button
+                onClick={handleDownloadPng}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-extrabold text-xs cursor-pointer shadow-lg flex items-center gap-1.5"
+              >
+                <Icon name="Download" className="w-4 h-4 text-slate-950" />
+                <span>Unduh Gambar Sertifikat (.PNG)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: WIZARD DESAIN PEMBELAJARAN ADDIE (DENGAN PRINT & MD DOWNLOAD)
     // ========================================================================
     function AddieProjectWizardModal({ onClose, onSaveProject }) {
       const [title, setTitle] = useState('');
@@ -2046,9 +2915,7 @@
       const [mediaChoice, setMediaChoice] = useState('Video Microlearning + Kuis Interaktif');
       const [evaluation, setEvaluation] = useState('Pre-test & Post-test diagnostik formatif');
 
-      const handleDownloadDoc = () => {
-        if (!title.trim()) return;
-        const textDoc = `============================================================
+      const generateDocText = () => `============================================================
 RANCANGAN MODEL PEMBELAJARAN ADDIE
 EDTECH WORLD LEARNING DESIGN DOCUMENT
 ============================================================
@@ -2074,7 +2941,9 @@ Dibuat otomatis via EdTech World Wizard
 Tanggal: ${new Date().toLocaleDateString('id-ID')}
 ============================================================`;
 
-        const blob = new Blob([textDoc], { type: 'text/plain;charset=utf-8' });
+      const handleDownloadTxt = () => {
+        if (!title.trim()) return;
+        const blob = new Blob([generateDocText()], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -2083,6 +2952,77 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        onSaveProject({ title, audience, objective, mediaChoice });
+      };
+
+      const handleDownloadMd = () => {
+        if (!title.trim()) return;
+        const mdText = `# Rancangan Pembelajaran Model ADDIE
+## ${title}
+
+* **Sasaran Peserta:** ${audience}
+* **Tanggal:** ${new Date().toLocaleDateString('id-ID')}
+
+---
+
+### 1. Analysis (Analisis Kebutuhan)
+${audience}
+
+### 2. Design (Tujuan Pembelajaran ABCD)
+${objective}
+
+### 3. Development (Media Terpilih)
+* **Media:** ${mediaChoice}
+
+### 4. Implementation (Strategi Penerapan)
+Blended Learning dengan simulasi interaktif di kelas dan penugasan mandiri.
+
+### 5. Evaluation (Asesmen)
+${evaluation}
+`;
+        const blob = new Blob([mdText], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Rancangan_ADDIE_${title.replace(/\s+/g, '_')}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        onSaveProject({ title, audience, objective, mediaChoice });
+      };
+
+      const handlePrintWindow = () => {
+        if (!title.trim()) return;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Rancangan ADDIE - ${title}</title>
+              <style>
+                body { font-family: sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+                h1 { border-bottom: 2px solid #0f172a; padding-bottom: 8px; color: #0f172a; }
+                h3 { margin-top: 24px; color: #0369a1; }
+                .box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 16px; border-radius: 8px; }
+              </style>
+            </head>
+            <body>
+              <h1>Rancangan Pembelajaran Model ADDIE</h1>
+              <p><strong>Judul Modul:</strong> ${title} | <strong>Tanggal:</strong> ${new Date().toLocaleDateString('id-ID')}</p>
+              <h3>1. Analysis (Analisis Peserta Didik)</h3>
+              <div class="box">${audience}</div>
+              <h3>2. Design (Tujuan Pembelajaran Format ABCD)</h3>
+              <div class="box">${objective}</div>
+              <h3>3. Development (Media Pembelajaran)</h3>
+              <div class="box">${mediaChoice}</div>
+              <h3>4. Implementation & Evaluation</h3>
+              <div class="box">${evaluation}</div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
         onSaveProject({ title, audience, objective, mediaChoice });
       };
 
@@ -2143,16 +3083,31 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
                 </select>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t">
-                <button onClick={onClose} className="px-4 py-2 text-slate-500 font-bold cursor-pointer">
+              <div className="pt-2 flex flex-wrap justify-end gap-2 border-t">
+                <button onClick={onClose} className="px-3 py-2 text-slate-500 font-bold cursor-pointer">
                   Batal
                 </button>
                 <button
-                  onClick={handleDownloadDoc}
+                  onClick={handleDownloadTxt}
                   disabled={!title.trim()}
-                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer disabled:opacity-40"
+                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold cursor-pointer disabled:opacity-40"
                 >
-                  Unduh Dokumen (.TXT) & Klaim (+75 XP)
+                  Unduh .TXT
+                </button>
+                <button
+                  onClick={handleDownloadMd}
+                  disabled={!title.trim()}
+                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold cursor-pointer disabled:opacity-40"
+                >
+                  Unduh .MD
+                </button>
+                <button
+                  onClick={handlePrintWindow}
+                  disabled={!title.trim()}
+                  className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+                >
+                  <Icon name="Printer" className="w-3.5 h-3.5" />
+                  <span>Cetak / PDF (+75 XP)</span>
                 </button>
               </div>
             </div>
@@ -2201,7 +3156,7 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
           }
         } else {
           soundManager.playThunder();
-          setTimeLeft((t) => Math.max(0, t - 15)); // Penalty waktu
+          setTimeLeft((t) => Math.max(0, t - 15));
         }
       };
 
@@ -2218,7 +3173,6 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
               </button>
             </div>
 
-            {/* Boss HP Bar */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-bold">
                 <span className="text-rose-400">Monster HP: {bossHp}%</span>
@@ -2276,10 +3230,33 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
     // ========================================================================
     function ProfVoxelMentorModal({ onClose }) {
       const [selectedQ, setSelectedQ] = useState(PROF_VOXEL_KNOWLEDGE[0]);
+      const [customQ, setCustomQ] = useState('');
+      const [aiAnswer, setAiAnswer] = useState(null);
+
+      const handleAskCustom = (e) => {
+        e.preventDefault();
+        if (!customQ.trim()) return;
+        soundManager.playClick();
+        const q = customQ.toLowerCase();
+
+        let ans = 'Pertanyaan yang sangat bagus! Dalam kajian Teknologi Pendidikan, integrasi antara pemahaman karakteristik pembelajar dan pemilihan media adalah kunci utama. Pastikan menerapkan prinsip ADDIE dan Mayer untuk hasil optimal.';
+        if (q.includes('addie')) {
+          ans = 'ADDIE adalah model perancangan makro (Analysis, Design, Development, Implementation, Evaluation). Fokus utama adalah memastikan kesenjangan kompetensi dijembatani secara terukur.';
+        } else if (q.includes('assure')) {
+          ans = 'ASSURE diciptakan Heinich dkk untuk skala kelas. Huruf pentingnya adalah R (Require Learner Participation), artinya siswa tidak boleh hanya pasif menonton media!';
+        } else if (q.includes('mayer') || q.includes('multimedia')) {
+          ans = 'Richard Mayer merumuskan 12 prinsip multimedia. Tiga yang paling penting: Coherence (buang kata/musik dekoratif), Signaling (sorot istilah kunci), dan Modality (gunakan audio narasi daripada teks panjang di layar).';
+        } else if (q.includes('tpack')) {
+          ans = 'TPACK menggabungkan Content, Pedagogy, dan Technology. Jangan gunakan teknologi hanya demi terlihat canggih, tapi sesuaikan dengan metode pengajaran yang cocok untuk konten tersebut.';
+        } else if (q.includes('samr')) {
+          ans = 'Model SAMR membagi adopsi teknologi dari Substitution, Augmentation, Modification, hingga Redefinition. Tingkat tertinggi adalah Redefinition, di mana tugas baru sebelumnya mustahil dibuat tanpa teknologi.';
+        }
+        setAiAnswer(ans);
+      };
 
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[85vh] flex flex-col">
+          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[88vh] flex flex-col">
             <div className="px-6 py-4 bg-gradient-to-r from-indigo-700 to-indigo-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center text-slate-950 font-bold">
@@ -2300,9 +3277,12 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
                 {PROF_VOXEL_KNOWLEDGE.map((item, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setSelectedQ(item)}
+                    onClick={() => {
+                      setSelectedQ(item);
+                      setAiAnswer(null);
+                    }}
                     className={`px-3 py-1.5 rounded-xl font-bold shrink-0 cursor-pointer ${
-                      selectedQ.topic === item.topic ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                      selectedQ.topic === item.topic && !aiAnswer ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
                     }`}
                   >
                     {item.topic}
@@ -2310,15 +3290,31 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
                 ))}
               </div>
 
+              {/* TANYA MANDIRI KE PROF. VOXEL */}
+              <form onSubmit={handleAskCustom} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Tanya konsep lain (contoh: TPACK, SAMR, Mayer)..."
+                  value={customQ}
+                  onChange={(e) => setCustomQ(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-indigo-500"
+                />
+                <button type="submit" className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold shrink-0 cursor-pointer">
+                  Tanya
+                </button>
+              </form>
+
               <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
-                <div className="font-bold text-indigo-900 text-sm">❓ {selectedQ.question}</div>
+                <div className="font-bold text-indigo-900 text-sm">
+                  ❓ {aiAnswer ? customQ : selectedQ.question}
+                </div>
                 <p className="text-slate-700 leading-relaxed pt-2 border-t border-indigo-200">
-                  {selectedQ.answer}
+                  {aiAnswer || selectedQ.answer}
                 </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
-                💡 <strong>Tips dari Prof. Voxel:</strong> Terapkan konsep ini ke dalam perancangan media interaktifmu di tab *Misi ADDIE* untuk memanen XP lebih banyak!
+                💡 <strong>Tips dari Prof. Voxel:</strong> Terapkan konsep ini ke dalam perancangan media interaktifmu di tab <em>Desain ADDIE</em> untuk memanen XP lebih banyak!
               </div>
             </div>
           </div>
@@ -2327,9 +3323,80 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
     }
 
     // ========================================================================
-    // MODAL STANDARD LAINNYA
+    // MODAL: BOTOL HANYUT
     // ========================================================================
-    function PasporModal({ playerName, setPlayerName, passportId, dayStreak, xp, levelNumber, citizens, islands, onClose }) {
+    function BottleMessageModal({ bottle, onClaim, onClose }) {
+      const [pickedOpt, setPickedOpt] = useState(null);
+      const [answered, setAnswered] = useState(false);
+
+      const handleCheck = () => {
+        setAnswered(true);
+        if (pickedOpt === bottle.ans) onClaim();
+      };
+
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🍾</span>
+                <h3 className="font-extrabold text-sm">Pesan Botol Hanyut dari Lautan</h3>
+              </div>
+              <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-950 text-xs italic leading-relaxed">
+              “{bottle.quote}”
+              <span className="block not-italic font-bold text-amber-800 mt-2">— {bottle.author}</span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <h4 className="font-bold text-slate-900">Kuis Kilat (+{bottle.rewardXp} XP):</h4>
+              <p className="font-semibold text-slate-700">{bottle.question}</p>
+              <div className="space-y-1.5">
+                {bottle.options.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => !answered && setPickedOpt(idx)}
+                    className={`w-full text-left p-2.5 rounded-xl border text-xs cursor-pointer ${
+                      pickedOpt === idx ? 'bg-indigo-600 text-white font-bold' : 'bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              {!answered ? (
+                <button
+                  onClick={handleCheck}
+                  disabled={pickedOpt === null}
+                  className="w-full mt-2 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold cursor-pointer disabled:opacity-40"
+                >
+                  Pecahkan Botol (+{bottle.rewardXp} XP)
+                </button>
+              ) : (
+                <p className="text-center font-bold text-emerald-600">Jawaban benar! Poin XP ditambahkan.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: PASPOR & KUSTOMISASI LAYAR KAPAL
+    // ========================================================================
+    function PasporModal({ playerName, setPlayerName, passportId, dayStreak, xp, levelNumber, citizens, islands, sailColor, setSailColor, onOpenCertificate, onClose }) {
+      const sailColors = [
+        { name: 'Zamrud', code: '#10b981' },
+        { name: 'Emas', code: '#f59e0b' },
+        { name: 'Api', code: '#ef4444' },
+        { name: 'Samudra', code: '#0284c7' },
+        { name: 'Cyber', code: '#a855f7' }
+      ];
+
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
@@ -2343,6 +3410,16 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
               </button>
             </div>
             <div className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="text-slate-500 font-bold block mb-1">Nama Mahasiswa / Penjelajah</label>
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-bold text-slate-800"
+                />
+              </div>
+
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200">
                   <div className="font-extrabold text-base text-amber-700">Hari {dayStreak}</div>
@@ -2357,12 +3434,43 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
                   <div className="text-[10px] text-emerald-900/70">Penduduk</div>
                 </div>
               </div>
+
+              {/* KUSTOMISASI WARNA LAYAR KAPAL */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="font-bold text-slate-800 flex items-center justify-between">
+                  <span>⛵ Warna Bendera Layar Kapal:</span>
+                  <span className="text-[10px] font-bold text-emerald-600">Aktif</span>
+                </div>
+                <div className="flex gap-2">
+                  {sailColors.map((sc) => (
+                    <button
+                      key={sc.code}
+                      onClick={() => setSailColor(sc.code)}
+                      title={sc.name}
+                      style={{ backgroundColor: sc.code }}
+                      className={`w-8 h-8 rounded-full cursor-pointer transition-transform ${sailColor === sc.code ? 'ring-3 ring-slate-900 scale-110' : 'opacity-80'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* TOMBOL BUKA SERTIFIKAT KELULUSAN */}
+              <button
+                onClick={onOpenCertificate}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-extrabold shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Icon name="Award" className="w-4 h-4 text-slate-950" />
+                <span>Terbitkan Sertifikat Eksplorator EdTech</span>
+              </button>
             </div>
           </div>
         </div>
       );
     }
 
+    // ========================================================================
+    // MODAL: MISI ADDIE
+    // ========================================================================
     function MisiAddieModal({ quests, islands, onClose, onCompleteQuest, onStartArena }) {
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -2389,17 +3497,51 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
       );
     }
 
-    function ArenaFokusModal({ arenaPresetMins, setArenaPresetMins, arenaSeconds, arenaRunning, setArenaRunning, onManualFinish, onClose }) {
+    // ========================================================================
+    // MODAL: ARENA FOKUS DENGAN TOGGLE SUARA HUJAN REAL-TIME
+    // ========================================================================
+    function ArenaFokusModal({ arenaPresetMins, setArenaPresetMins, arenaSeconds, setArenaSeconds, arenaRunning, setArenaRunning, rainSoundOn, setRainSoundOn, onManualFinish, onClose }) {
+      useEffect(() => {
+        let interval = null;
+        if (arenaRunning) {
+          interval = setInterval(() => {
+            setArenaSeconds((prev) => {
+              if (prev <= 1) {
+                setArenaRunning(false);
+                onManualFinish();
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        }
+        return () => clearInterval(interval);
+      }, [arenaRunning, onManualFinish, setArenaSeconds, setArenaRunning]);
+
       const mins = String(Math.floor(arenaSeconds / 60)).padStart(2, '0');
       const secs = String(arenaSeconds % 60).padStart(2, '0');
+
       return (
         <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-3xl bg-slate-900 text-white shadow-2xl border border-white/15 p-6 text-center space-y-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <h3 className="font-bold text-sm">Arena Fokus</h3>
+              <h3 className="font-bold text-sm">Arena Fokus & Pomodoro Belajar</h3>
               <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-lg cursor-pointer"><Icon name="X" className="w-4 h-4" /></button>
             </div>
             <div className="text-6xl font-mono font-extrabold text-emerald-400 py-3">{mins}:{secs}</div>
+
+            {/* TOGGLE AMBIENCE HUJAN SYNTH */}
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setRainSoundOn(!rainSoundOn)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                  rainSoundOn ? 'bg-sky-500 text-white' : 'bg-white/10 text-slate-300'
+                }`}
+              >
+                <span>🌧️ Suara Hujan Ambient: {rainSoundOn ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
+
             <div className="flex justify-center gap-2">
               <button onClick={() => setArenaRunning(!arenaRunning)} className="px-6 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs cursor-pointer">
                 {arenaRunning ? 'Jeda' : 'Mulai'}
@@ -2413,6 +3555,9 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
       );
     }
 
+    // ========================================================================
+    // MODAL: VOTING DEWAN
+    // ========================================================================
     function VotingModal({ poll, votedOptionId, onVote, onClose }) {
       const totalVotes = poll.options.reduce((sum, o) => sum + o.votes, 0) || 1;
       return (
@@ -2434,6 +3579,66 @@ Tanggal: ${new Date().toLocaleDateString('id-ID')}
                   <div className="flex justify-between font-bold"><span>{opt.label}</span><span>{Math.round((opt.votes / totalVotes) * 100)}%</span></div>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ========================================================================
+    // MODAL: MENU LENGKAP & RESET DATA
+    // ========================================================================
+    function MenuModal({ onResetProgress, onOpenFeature, onClose }) {
+      return (
+        <div role="dialog" className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <h2 className="font-bold text-sm">Pusat Fitur EdTech World Ultimate</h2>
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 cursor-pointer">
+                <Icon name="X" className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-2.5 text-xs">
+              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-900 text-[11px] font-semibold flex items-center gap-1.5">
+                <span>💾 Data Tersimpan Otomatis di Browser (LocalStorage)</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  onClick={() => { onClose(); onOpenFeature('flashcards'); }}
+                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                >
+                  🃏 Flashcards Teori
+                </button>
+                <button
+                  onClick={() => { onClose(); onOpenFeature('sorter'); }}
+                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                >
+                  ⚙️ Pemilah CLT
+                </button>
+                <button
+                  onClick={() => { onClose(); onOpenFeature('alun'); }}
+                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                >
+                  💬 Alun-Alun Refleksi
+                </button>
+                <button
+                  onClick={() => { onClose(); onOpenFeature('certificate'); }}
+                  className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 font-bold text-left cursor-pointer"
+                >
+                  📜 Cetak Sertifikat
+                </button>
+              </div>
+
+              <div className="pt-3 border-t">
+                <button
+                  onClick={onResetProgress}
+                  className="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Icon name="RefreshCw" className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Reset Seluruh Data & Progres</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
